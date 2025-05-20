@@ -85,7 +85,7 @@ def format_delivery_records():
 
 # Product List
 products = [
-
+    {'category': 'Shirt', 'type': 'Denim Shirt', 'size': ['M', 'L', 'XL'], 'color': ['Blue', 'Gray'], 'image': 'https://ezbo.org/product-image/uploads/img_682c988cbd00b6.10732605.jpg', 'price': 780}
 ]
 
 def get_products():
