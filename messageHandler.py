@@ -87,7 +87,8 @@ def format_delivery_records():
 products = [
     {'category': 'Shirt', 'type': 'Denim Shirt', 'size': ['M', 'L', 'XL'], 'color': ['Blue', 'Gray'], 'image': 'https://ezbo.org/product-image/uploads/img_682c988cbd00b6.10732605.jpg', 'price': 780},
     {'category': 'Shirt', 'type': 'Cotton Shirt', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Black', 'Navy'], 'image': 'https://ezbo.org/product-image/uploads/img_682c98c0ee3119.95771931.jpg', 'price': 800},
-    {'category': 'Pant', 'type': 'Cargo Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Gray', 'White'], 'image': 'https://ezbo.org/product-image/uploads/img_682c990bc73608.08671474.jpg', 'price': 850}
+    {'category': 'Pant', 'type': 'Cargo Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Gray', 'White'], 'image': 'https://ezbo.org/product-image/uploads/img_682c990bc73608.08671474.jpg', 'price': 850},
+    {'category': 'Pant', 'type': 'Gabardine Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Black', 'Blue'], 'image': 'https://ezbo.org/product-image/uploads/img_682c9966ed74c6.48769739.jpg', 'price': 720}
 ]
 
 def get_products():
