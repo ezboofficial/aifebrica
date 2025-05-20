@@ -31,16 +31,16 @@ logger.addHandler(handler)
 
 # Default settings
 settings = {
-    "shop_name": "Write Shop Name Here!",
-    "shop_number": "Write Shop Phone Number Here!",
-    "shop_email": "Write Shop Email Here!",
+    "shop_name": "Febrica",
+    "shop_number": "+8801709805177",
+    "shop_email": "developerabdurrahman88@gmail.com",
     "currency": "BDT",
-    "ai_name": "Write Ai Name Here!",
+    "ai_name": "Ruhi",
     "payment_methods": {
         "cod": True,
-        "bkash": False,
+        "bkash": True,
         "nagad": False,
-        "bkash_number": "",
+        "bkash_number": "01709805177",
         "nagad_number": "",
         "bkash_type": "Personal",
         "nagad_type": "Personal",
@@ -49,8 +49,8 @@ settings = {
     },
     "delivery_records": [
     ],
-    "service_products": "Write Service/Products Description Here!",
-    "return_policy": "Write Return Policy Details Here!"
+    "service_products": "Selling high-quality Shirts, Pants, and Shoes.",
+    "return_policy": "Customers can return products within 7 days if there is a valid issue. Money will be refunded without delivery charges."
 }
 
 def update_settings(shop_name=None, shop_number=None, shop_email=None, currency=None, ai_name=None, greeting=None, 
