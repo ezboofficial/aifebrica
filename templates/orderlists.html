@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+        /* Order List Container */
+        .order-list-container {
+            max-width: 850px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+
+        /* Search and Filter Bar */
+        .search-filter-bar {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-filter-bar input,
+        .search-filter-bar select {
+            padding: 10px;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            background-color: #262626;
+            color: #fff;
+            font-size: 1rem;
+            appearance: none; /* Remove default browser styling */
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+        }
+
+        .search-container {
+            position: relative;
+            width: 30%; /* Same as the original search bar width */
+        }
+
+        .search-container input {
+            width: 100%; /* Full width of the container */
+            padding-right: 40px; /* Space for the icon */
+            background-image: none; /* Remove the old search icon */
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300ffff'%3e%3cpath d='M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z'/%3e%3c/svg%3e"); /* Same search icon as before */
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+        }
+
+        .search-icon:hover {
+            opacity: 0.8; /* Hover effect */
+        }
+
+        .search-filter-bar select {
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300ffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); /* Down arrow */
+        }
+
+        .search-filter-bar select#filterStatus {
+            width: 15%; /* Filter width for status */
+        }
+
+        /* Responsive Search and Filter Bar */
+        @media (max-width: 768px) {
+            .search-filter-bar {
+                flex-wrap: wrap; /* Allow wrapping for mobile */
+            }
+
+            .search-container {
+                width: 100%; /* Full width for search bar */
+                margin-bottom: 10px; /* Add space below search bar */
+            }
+
+            .search-filter-bar select {
+                flex: 1; /* Allow filters to grow and fit in one line */
+                min-width: 0; /* Prevent overflow */
+            }
+
+            .search-filter-bar select#filterStatus {
+                width: 60% !important; /* 60% width for status filter */
+            }
+        }
+
+        /* Order Table */
+        .order-table {
+            width: 100%;
+            border-collapse: collapse; /* Ensure borders are merged */
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        
+        @media (min-width: 769px) {
+            .order-table {
+                border-left: 1px solid #00ffff;
+                border-right: 1px solid #00ffff;
+            }
+        }
+
+        .order-table th,
+        .order-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #00ffff; /* Consistent border color */
+            border-right: 1px solid #00ffff; /* Add right border for all cells */
+        }
+
+        .order-table th:last-child,
+        .order-table td:last-child {
+            border-right: none; /* Remove right border for the last column */
+        }
+
+        .order-table th {
+            color: #00ffff;
+            font-size: 1.1rem;
+            border-top: 1px solid #00ffff; /* Add top border for header */
+        }
+
+        .order-table tr:hover {
+            background-color: rgba(0, 255, 255, 0.1);
+        }
+
+        .order-table .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center; /* Center the actions button in PC view */
+            border-right: none; /* Ensure no double border in actions column */
+        }
+
+        .order-table .actions button {
+            padding: 5px 10px;
+            background-color: #00ffff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        /* Text Truncation for Desktop/Laptop Screens */
+        @media (min-width: 769px) {
+            .order-table td {
+                white-space: nowrap; /* Prevent text from wrapping */
+                overflow: hidden; /* Hide overflow */
+                text-overflow: ellipsis; /* Add ellipsis for truncated text */
+                max-width: 150px; /* Set a maximum width for the cell */
+            }
+        }
+
+        /* Responsive Table for Mobile */
+        @media (max-width: 768px) {
+            .order-table thead {
+                display: none;
+            }
+
+            .order-table tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid #00ffff;
+                border-radius: 10px;
+                padding: 10px;
+                background-color: #1a1a1a;
+            }
+
+            .order-table td {
+                display: block;
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+                border-bottom: 1px solid #00ffff;
+                border-right: none; /* Remove right border for mobile */
+            }
+
+            .order-table td:last-child {
+                border-bottom: none;
+            }
+
+            .order-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 50%;
+                padding-left: 15px;
+                font-weight: bold;
+                text-align: left;
+                color: #00ffff;
+            }
+
+            .order-table .actions {
+                justify-content: flex-end; /* Right-align the actions button in mobile view */
+                border-top: 1px solid #00ffff;
+                padding-top: 10px;
+            }
+        }
+    </style>
+
+    <div class="order-list-container">
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar">
+            <!-- Search Bar with Clickable Icon -->
+            <div class="search-container">
+                <input type="text" id="search" placeholder="Search orders...">
+                <span class="search-icon" onclick="triggerSearch()"></span>
+            </div>
+            
+            <!-- Status Filter -->
+            <select id="filterStatus">
+    <option value="">Status</option>
+    <option value="Preparing">Preparing</option>
+    <option value="Shipping">Shipping</option>
+    <option value="Delivering">Delivering</option>
+</select>
+        </div>
+
+        <!-- Order Table -->
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Product</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td data-label="Name">{{ order.name }}</td>
+                    <td data-label="Mobile">{{ order.mobile }}</td>
+                    <td data-label="Product">{{ order.product }}</td>
+                    <td data-label="Status">{{ order.status }}</td>
+                    <td class="actions" data-label="Actions">
+                        <button onclick="window.location.href='{{ url_for('view_order', order_index=loop.index0) }}'">View</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Search and Filter Functionality
+        function triggerSearch() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const rows = document.querySelectorAll('.order-table tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        document.getElementById('search').addEventListener('input', function() {
+            triggerSearch();
+        });
+
+        document.getElementById('filterStatus').addEventListener('change', function() {
+            const status = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.order-table tbody tr');
+            rows.forEach(row => {
+                const rowStatus = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                row.style.display = status === '' || rowStatus.includes(status) ? '' : 'none';
+            });
+        });
+    </script>
+{% endblock %}
