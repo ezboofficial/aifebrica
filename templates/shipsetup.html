@@ -1,0 +1,616 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+        .ship-setup {
+            max-width: 850px;
+            margin: 20px auto 20px; /* Consistent spacing from top and bottom */
+            padding: 0 10px;
+        }
+
+        /* Search and Filter Bar */
+        .search-filter-bar {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-container {
+            position: relative;
+            width: 30%; /* Same as the original search bar width */
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 10px;
+            padding-right: 40px; /* Space for the icon */
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            background-color: #262626;
+            color: #fff;
+            font-size: 1rem;
+            appearance: none;
+            background-image: none; /* Remove the old search icon */
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300ffff'%3e%3cpath d='M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+        }
+
+        .search-icon:hover {
+            opacity: 0.8; /* Hover effect */
+        }
+
+        .add-product-btn {
+            padding: 10px 20px; /* Smaller button */
+            background-color: #00ffff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        /* Hide mobile button on desktop */
+        @media (min-width: 769px) {
+            .add-product-btn.mobile {
+                display: none; /* Hide mobile button on desktop */
+            }
+        }
+
+        /* Responsive Search and Filter Bar */
+        @media (max-width: 768px) {
+            .search-filter-bar {
+                flex-wrap: wrap; /* Allow wrapping for mobile */
+                margin-bottom: 2px; /* Reduced distance between search bar and table */
+            }
+
+            .search-container {
+                width: 100%; /* Full width for search bar */
+                margin-bottom: 5px; /* Add space below search bar */
+            }
+
+            .add-product-btn.desktop {
+                display: none; /* Hide desktop button on mobile */
+            }
+
+            .add-product-btn.mobile {
+                width: 60%; /* 60% width for Add New Record button */
+                margin-left: auto; /* Align to the right */
+                margin-bottom: 10px; /* Add space below the button */
+                display: block; /* Show mobile button */
+            }
+        }
+
+        .delivery-records-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            overflow-x: auto;
+        }
+        .delivery-records-table th,
+        .delivery-records-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #00ffff;
+            border-right: 1px solid #00ffff;
+        }
+
+        .delivery-records-table th:last-child,
+        .delivery-records-table td:last-child {
+            border-right: none;
+        }
+
+        .delivery-records-table th {
+            color: #00ffff;
+            font-size: 1.1rem;
+            border-top: 1px solid #00ffff;
+        }
+
+        .delivery-records-table tr:hover {
+            background-color: rgba(0, 255, 255, 0.1);
+        }
+
+        .delivery-records-table .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center; /* Center action buttons */
+            border-right: none;
+        }
+
+        .delivery-records-table .actions button {
+            padding: 5px 10px;
+            background-color: #00ffff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        @media (min-width: 769px) {
+            .delivery-records-table {
+                border-left: 1px solid #00ffff;
+                border-right: 1px solid #00ffff;
+            }
+        }
+        
+        /* Responsive Table for Mobile */
+        @media (max-width: 768px) {
+            .delivery-records-table thead {
+                display: none;
+            }
+
+            .delivery-records-table tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid #00ffff;
+                border-radius: 10px;
+                padding: 10px;
+                background-color: #1a1a1a;
+            }
+
+            .delivery-records-table td {
+                display: block;
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+                border-bottom: 1px solid #00ffff;
+                border-right: none;
+            }
+
+            .delivery-records-table td:last-child {
+                border-bottom: none;
+            }
+
+            .delivery-records-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 50%;
+                padding-left: 15px;
+                font-weight: bold;
+                text-align: left;
+                color: #00ffff;
+            }
+
+            .delivery-records-table .actions {
+                justify-content: flex-end;
+                border-top: 1px solid #00ffff;
+                padding-top: 10px;
+            }
+        }
+
+        /* Popup Styles */
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 15px;
+            border:1px solid #00ffff;
+            z-index: 1002;
+            width: 90%;
+            max-width: 400px;
+            display: none;
+            animation: popupFadeIn 0.3s ease-in-out;
+        }
+
+        .popup.active {
+            display: block;
+        }
+
+        .popup h3 {
+            color: #00ffff;
+            margin-bottom: 7px;
+            text-align: center;
+        }
+
+        .confirmation-popup p {
+            margin-bottom: 10px;
+        }
+
+        .popup label {
+            color: #00ffff;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .popup input,
+        .popup select,
+        .popup textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            background-color: #262626;
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            appearance: none;
+            background-image: none;
+        }
+
+        .popup button {
+            padding: 8px 20px;
+            background-color: #00ffff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 7px;
+        }
+        
+        /* Confirmation Popup */
+        .confirmation-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 15px;
+            border:1px solid #00ffff;
+            z-index: 1002;
+            width: 90%;
+            max-width: 300px;
+            display: none;
+            animation: popupFadeIn 0.3s ease-in-out;
+        }
+
+        .confirmation-popup.active {
+            display: block;
+        }
+
+        .confirmation-popup h3 {
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .confirmation-popup .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .confirmation-popup button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .confirmation-popup button.confirm {
+            background-color: #00ffff;
+            color: #0a0a0a;
+        }
+
+        .confirmation-popup button.cancel {
+            background-color: #ff5555;
+            color: #fff;
+        }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+        }
+
+        #toast-message {
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #toast-message::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.5), transparent);
+            transform: translate(-50%, -50%);
+            animation: smoke 2s infinite ease-in-out;
+            z-index: -1;
+        }
+
+        #toast-message.error::before {
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.5), transparent);
+        }
+
+        @keyframes smoke {
+            0% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+        }
+    </style>
+
+    <div class="ship-setup">
+        <!-- Add New Record Button (Mobile) -->
+        <button class="add-product-btn mobile" onclick="showAddDeliveryRecordPopup()">Add New Record</button>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-filter-bar">
+            <!-- Search Bar with Clickable Icon -->
+            <div class="search-container">
+                <input type="text" id="search" placeholder="Search delivery records...">
+                <span class="search-icon" onclick="triggerSearch()"></span>
+            </div>
+
+            <!-- Add New Record Button (Desktop) -->
+            <button class="add-product-btn desktop" onclick="showAddDeliveryRecordPopup()">Add New Record</button>
+        </div>
+
+        <!-- Delivery Records Table -->
+        <table class="delivery-records-table">
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>Region</th>
+                    <th>Delivery Time</th>
+                    <th>Delivery Charge</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in settings.delivery_records %}
+                <tr>
+                    <td data-label="Country">{{ record.country }}</td>
+                    <td data-label="Region">{{ record.region }}</td>
+                    <td data-label="Delivery Time">{{ record.delivery_time }}</td>
+                    <td data-label="Delivery Charge">{{ record.delivery_charge }}{{ settings.currency }}</td>
+                    <td class="actions" data-label="Actions">
+                        <button onclick="editDeliveryRecord({{ loop.index0 }})">Edit</button>
+                        <button onclick="showRemoveConfirmation({{ loop.index0 }})">Remove</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Delivery Record Popup -->
+    <div class="popup" id="addDeliveryRecordPopup">
+        <h3>Add New Delivery Record</h3>
+        <form id="addDeliveryRecordForm" onsubmit="return addDeliveryRecord(event)">
+            <label for="country">Country:</label>
+            <input type="text" id="country" name="country" required>
+            
+            <label for="region">Region:</label>
+            <input type="text" id="region" name="region" required>
+            
+            <label for="delivery_time">Delivery Time:</label>
+            <input type="text" id="delivery_time" name="delivery_time" required>
+            
+            <label for="delivery_charge">Delivery Charge:</label>
+            <input type="number" id="delivery_charge" name="delivery_charge" required>
+            
+            <button type="submit">Add Record</button>
+            <button type="button" onclick="hideAddDeliveryRecordPopup()">Cancel</button>
+        </form>
+    </div>
+
+    <!-- Edit Delivery Record Popup -->
+    <div class="popup" id="editDeliveryRecordPopup">
+        <h3>Edit Delivery Record</h3>
+        <form id="editDeliveryRecordForm" onsubmit="return updateDeliveryRecord(event)">
+            <input type="hidden" id="editDeliveryRecordIndex" name="record_index">
+            
+            <label for="editCountry">Country:</label>
+            <input type="text" id="editCountry" name="country" required>
+            
+            <label for="editRegion">Region:</label>
+            <input type="text" id="editRegion" name="region" required>
+            
+            <label for="editDeliveryTime">Delivery Time:</label>
+            <input type="text" id="editDeliveryTime" name="delivery_time" required>
+            
+            <label for="editDeliveryCharge">Delivery Charge:</label>
+            <input type="number" id="editDeliveryCharge" name="delivery_charge" required>
+            
+            <button type="submit">Update Record</button>
+            <button type="button" onclick="hideEditDeliveryRecordPopup()">Cancel</button>
+        </form>
+    </div>
+
+    <!-- Confirmation Popup for Remove -->
+    <div class="confirmation-popup" id="removeConfirmationPopup">
+        <h3>Are you sure?</h3>
+        <p>Do you really want to remove this delivery record?</p>
+        <div class="actions">
+            <button class="cancel" onclick="hideRemoveConfirmation()">Cancel</button>
+            <button class="confirm" onclick="removeDeliveryRecordConfirmed()">Remove</button>
+        </div>
+    </div>
+
+    <script>
+        // Show Add Delivery Record Popup
+        function showAddDeliveryRecordPopup() {
+            document.getElementById('addDeliveryRecordPopup').classList.add('active');
+        }
+
+        // Hide Add Delivery Record Popup
+        function hideAddDeliveryRecordPopup() {
+            document.getElementById('addDeliveryRecordPopup').classList.remove('active');
+        }
+
+        // Show Edit Delivery Record Popup
+        function editDeliveryRecord(index) {
+            const record = {{ settings.delivery_records | tojson | safe }}[index];
+            document.getElementById('editDeliveryRecordIndex').value = index;
+            document.getElementById('editCountry').value = record.country;
+            document.getElementById('editRegion').value = record.region;
+            document.getElementById('editDeliveryTime').value = record.delivery_time;
+            document.getElementById('editDeliveryCharge').value = record.delivery_charge;
+            document.getElementById('editDeliveryRecordPopup').classList.add('active');
+        }
+
+        // Hide Edit Delivery Record Popup
+        function hideEditDeliveryRecordPopup() {
+            document.getElementById('editDeliveryRecordPopup').classList.remove('active');
+        }
+
+        // Show Remove Confirmation Popup
+        let recordToRemoveIndex = null;
+        function showRemoveConfirmation(index) {
+            recordToRemoveIndex = index;
+            document.getElementById('removeConfirmationPopup').classList.add('active');
+        }
+
+        // Hide Remove Confirmation Popup
+        function hideRemoveConfirmation() {
+            recordToRemoveIndex = null;
+            document.getElementById('removeConfirmationPopup').classList.remove('active');
+        }
+
+        // Remove Delivery Record Confirmed
+        function removeDeliveryRecordConfirmed() {
+            if (recordToRemoveIndex !== null) {
+                removeDeliveryRecord(recordToRemoveIndex);
+                hideRemoveConfirmation();
+                showToast("Delivery record removed successfully!", "success");
+            }
+        }
+
+        // Add Delivery Record
+        function addDeliveryRecord(event) {
+            event.preventDefault();
+            const form = document.getElementById('addDeliveryRecordForm');
+            const formData = new FormData(form);
+            const data = {
+                action: 'add',
+                country: formData.get('country'),
+                region: formData.get('region'),
+                delivery_time: formData.get('delivery_time'),
+                delivery_charge: formData.get('delivery_charge')
+            };
+
+            fetch('/shipsetup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data).toString()
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+            });
+            showToast("Delivery record added successfully!", "success");
+        }
+
+        // Update Delivery Record
+        function updateDeliveryRecord(event) {
+            event.preventDefault();
+            const form = document.getElementById('editDeliveryRecordForm');
+            const formData = new FormData(form);
+            const data = {
+                action: 'edit',
+                record_index: formData.get('record_index'),
+                country: formData.get('country'),
+                region: formData.get('region'),
+                delivery_time: formData.get('delivery_time'),
+                delivery_charge: formData.get('delivery_charge')
+            };
+
+            fetch('/shipsetup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data).toString()
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+            });
+            showToast("Delivery record updated successfully!", "success");
+        }
+
+        // Remove Delivery Record
+        function removeDeliveryRecord(index) {
+            const data = {
+                action: 'remove',
+                record_index: index
+            };
+
+            fetch('/shipsetup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data).toString()
+            }).then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                }
+            });
+        }
+
+        // Search Functionality
+        function triggerSearch() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const rows = document.querySelectorAll('.delivery-records-table tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        document.getElementById('search').addEventListener('input', function() {
+            triggerSearch();
+        });
+
+        // Toast Notification
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+
+            toastMessage.textContent = message;
+            toastMessage.className = type === 'error' ? 'error' : 'success';
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 4000);
+        }
+    </script>
+{% endblock %}
