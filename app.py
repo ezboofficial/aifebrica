@@ -16,6 +16,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import send_from_directory
 import datetime
+import threading
+from telegramHandler import main as telegram_main
 
 load_dotenv()
 
@@ -872,4 +874,10 @@ def send_order_notification(order):
         return False
 
 if __name__ == '__main__':
+    # Start Telegram bot in a separate thread
+    telegram_thread = threading.Thread(target=telegram_main)
+    telegram_thread.daemon = True
+    telegram_thread.start()
+    
+    # Start Flask app
     app.run(debug=True, host='0.0.0.0', port=3000)
