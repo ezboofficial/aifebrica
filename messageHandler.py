@@ -410,8 +410,23 @@ to end, ask them to try again. Once an exact match is found, provide the order s
 If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
 """
 
+def get_gemini_api_key():
+    try:
+        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        if response.status_code == 200:
+            return response.text.strip()
+        logger.error(f"Failed to get API key: HTTP {response.status_code}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        return None
+
 def initialize_text_model():
-    genai.configure(api_key=os.getenv("GEMINI_TEXT_API_KEY"))
+    api_key = get_gemini_api_key()
+    if not api_key:
+        raise ValueError("No active Gemini API key available")
+    
+    genai.configure(api_key=api_key)
     return genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         generation_config={
