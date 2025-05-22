@@ -43,6 +43,9 @@ AI_ENABLED = True
 
 def clean_gitkeep_files():
     """Remove .gitkeep files from user directories that have content"""
+    if not USER_DATA_DIR.exists():
+        return
+        
     for user_dir in USER_DATA_DIR.iterdir():
         if user_dir.is_dir():
             gitkeep = user_dir / ".gitkeep"
@@ -58,7 +61,7 @@ def clean_gitkeep_files():
 
 def ensure_user_dir(user_id):
     """Ensure user directory exists and is properly set up"""
-    # Only process user IDs that start with a digit (real users)
+    # Only process user IDs that are numeric (real users)
     if not str(user_id).isdigit():
         return None
         
@@ -272,9 +275,6 @@ def push_to_github(user_dir, user_id):
     except Exception as e:
         logger.error(f"Error pushing user data to GitHub: {str(e)}")
 
-# Run gitkeep cleanup on startup
-clean_gitkeep_files()
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -355,6 +355,10 @@ def webhook():
             for event in entry.get("messaging", []):
                 if "message" in event:
                     sender_id = event["sender"]["id"]
+                    
+                    # Only process messages from users (not pages)
+                    if not str(sender_id).isdigit():
+                        continue
                     
                     # Create/update account info
                     user_dir = ensure_user_dir(sender_id)
@@ -1103,6 +1107,9 @@ def send_order_notification(order):
     except Exception as e:
         logger.error(f"Failed to send order notification email: {str(e)}")
         return False
+
+# Run gitkeep cleanup on startup
+clean_gitkeep_files()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
