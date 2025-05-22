@@ -294,21 +294,23 @@
     <!-- Content Box -->
     <div class="content-box">
         <!-- Dynamic Heading -->
-        <h2 class="dynamic-heading">
-            {% if request.endpoint == 'order_lists' %}
-                Order Management
-            {% elif request.endpoint == 'sales_logs' %}
-                Sales Analytics
-            {% elif request.endpoint == 'analyze_ai' %}
-                Business Insights
-            {% elif request.endpoint == 'stock_lists' %}
-                Inventory Control
-            {% elif request.endpoint == 'ship_setup' %}
-                Shipping Config
-            {% elif request.endpoint == 'ai_settings' %}
-                AI Configuration
-            {% endif %}
-        </h2>
+<h2 class="dynamic-heading">
+    {% if request.endpoint == 'dashboard' %}
+        Dashboard
+    {% elif request.endpoint == 'order_lists' %}
+        Order Management
+    {% elif request.endpoint == 'sales_logs' %}
+        Sales Analytics
+    {% elif request.endpoint == 'analyze_ai' %}
+        Business Insights
+    {% elif request.endpoint == 'stock_lists' %}
+        Inventory Control
+    {% elif request.endpoint == 'ship_setup' %}
+        Shipping Config
+    {% elif request.endpoint == 'ai_settings' %}
+        AI Configuration
+    {% endif %}
+</h2>
 
         {% block content %}{% endblock %}
     </div>
