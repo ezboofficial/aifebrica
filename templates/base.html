@@ -295,8 +295,6 @@
     <div class="content-box">
         <!-- Dynamic Heading -->
         <h2 class="dynamic-heading">
-            {% if request.endpoint == 'dashboard' %}
-                Dashboard
             {% if request.endpoint == 'order_lists' %}
                 Order Management
             {% elif request.endpoint == 'sales_logs' %}
