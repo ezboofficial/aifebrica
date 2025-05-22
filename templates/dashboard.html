@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Summary Cards */
+        .summary-card {
+            background-color: #1a1a1a;
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #00ffff, #00bfff);
+        }
+
+        .summary-card h3 {
+            color: #00ffff;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-card h3 i {
+            font-size: 1.5rem;
+        }
+
+        .summary-card .value {
+            color: #fff;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .change {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .summary-card .change.positive {
+            color: #00ff00;
+        }
+
+        .summary-card .change.negative {
+            color: #ff5555;
+        }
+
+        /* Quick Stats Section */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            background-color: #1a1a1a;
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-item .stat-value {
+            color: #00ffff;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-item .stat-label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* Recent Activity Section */
+        .activity-section {
+            background-color: #1a1a1a;
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .activity-section h2 {
+            color: #00ffff;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #00ffff;
+        }
+
+        .activity-list {
+            list-style: none;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(0, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon i {
+            color: #00ffff;
+            font-size: 1.2rem;
+        }
+
+        .activity-content {
+            flex-grow: 1;
+        }
+
+        .activity-title {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .activity-time {
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background-color: #1a1a1a;
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .chart-container h3 {
+            color: #00ffff;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .action-button {
+            background-color: #1a1a1a;
+            border: 1px solid #00ffff;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .action-button:hover {
+            background-color: rgba(0, 255, 255, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+
+        .action-button i {
+            color: #00ffff;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .action-button span {
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quick-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <div class="dashboard-container">
+        <!-- Welcome Header -->
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #00ffff; font-size: 2rem; margin-bottom: 10px;">Welcome to a!Panel Dashboard</h1>
+            <p style="color: #aaa;">Manage your AI chatbot and monitor business performance</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="dashboard-grid">
+            <div class="summary-card">
+                <h3><i>📈</i> Total Revenue</h3>
+                <div class="value">{{ total_earnings }}{{ settings.currency }}</div>
+                <div class="change positive">↑ 12% from last month</div>
+            </div>
+            
+            <div class="summary-card">
+                <h3><i>🛒</i> Total Orders</h3>
+                <div class="value">{{ total_orders }}</div>
+                <div class="change positive">↑ 8% from last month</div>
+            </div>
+            
+            <div class="summary-card">
+                <h3><i>📦</i> Active Orders</h3>
+                <div class="value">{{ preparing_orders + shipping_orders + delivering_orders }}</div>
+                <div class="change negative">↓ 5% from last week</div>
+            </div>
+            
+            <div class="summary-card">
+                <h3><i>✅</i> Completed Orders</h3>
+                <div class="value">{{ delivered_orders }}</div>
+                <div class="change positive">↑ 15% from last month</div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+            <div class="stat-item">
+                <div class="stat-label">Preparing Orders</div>
+                <div class="stat-value">{{ preparing_orders }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Shipping Orders</div>
+                <div class="stat-value">{{ shipping_orders }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Delivering Orders</div>
+                <div class="stat-value">{{ delivering_orders }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Canceled Orders</div>
+                <div class="stat-value">{{ canceled_orders }}</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="action-button" onclick="window.location.href='{{ url_for('order_lists') }}'">
+                <i>📋</i>
+                <span>Order Lists</span>
+            </div>
+            <div class="action-button" onclick="window.location.href='{{ url_for('stock_lists') }}'">
+                <i>📦</i>
+                <span>Inventory</span>
+            </div>
+            <div class="action-button" onclick="window.location.href='{{ url_for('ai_settings') }}'">
+                <i>⚙️</i>
+                <span>AI Settings</span>
+            </div>
+            <div class="action-button" onclick="window.location.href='{{ url_for('ship_setup') }}'">
+                <i>🚚</i>
+                <span>Shipping</span>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Best-Selling Products</h3>
+                <canvas id="bestSellingChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Orders Over Time</h3>
+                <canvas id="ordersOverTimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="activity-section">
+            <h2>Recent Activity</h2>
+            <ul class="activity-list">
+                {% for order in orders[:5] %}
+                <li class="activity-item">
+                    <div class="activity-icon">
+                        <i>🛒</i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">New order from {{ order.name }}</div>
+                        <div class="activity-time">{{ order.date }} • {{ order.status }}</div>
+                    </div>
+                </li>
+                {% endfor %}
+                {% if orders|length == 0 %}
+                <li class="activity-item">
+                    <div class="activity-icon">
+                        <i>ℹ️</i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">No recent orders</div>
+                        <div class="activity-time">Check back later</div>
+                    </div>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Best Selling Products Chart
+        const bestSellingCtx = document.getElementById('bestSellingChart').getContext('2d');
+        const bestSellingChart = new Chart(bestSellingCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ best_selling_products_labels | tojson | safe }} || ['No data'],
+                datasets: [{
+                    data: {{ best_selling_products_data | tojson | safe }} || [0],
+                    backgroundColor: [
+                        'rgba(0, 255, 255, 0.7)',
+                        'rgba(0, 191, 255, 0.7)',
+                        'rgba(0, 128, 255, 0.7)',
+                        'rgba(0, 64, 255, 0.7)',
+                        'rgba(0, 0, 255, 0.7)'
+                    ],
+                    borderColor: '#00ffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Orders Over Time Chart
+        const ordersOverTimeCtx = document.getElementById('ordersOverTimeChart').getContext('2d');
+        const ordersOverTimeChart = new Chart(ordersOverTimeCtx, {
+            type: 'line',
+            data: {
+                labels: {{ orders_over_time_labels | tojson | safe }} || ['No data'],
+                datasets: [{
+                    label: 'Orders',
+                    data: {{ orders_over_time_data | tojson | safe }} || [0],
+                    backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                    borderColor: '#00ffff',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock %}
