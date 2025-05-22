@@ -315,7 +315,7 @@ def analyze_and_match_product(image_url):
                     continue
         
         # Return best match if similarity score is above threshold
-        if best_match and highest_score > 0.3:  # Lowered threshold to 40% for better matching
+        if best_match and highest_score > 0.4:  # Lowered threshold to 40% for better matching
             return best_match, highest_score
             
     except Exception as e:
@@ -383,7 +383,7 @@ Example: "Please send {850 + 130} = 980{settings['currency']} to Nagad: {setting
 4. For budgets: Show matching products in range.
 6. Don't send an image link with product details or a list if the user hasn't asked for it.
 6. If a user wants to see a product, include the image URL in the format: "[Product Name] - [Image URL]" when showing product image."
-7. Analyze the customer's product image, compare it with the catalog, show matching details if similarity >30%, otherwise request more details politely.
+7. Analyze the customer's product image, compare it with the catalog, show matching details if similarity >40%, otherwise request more details politely.
 
 ## Order Process
 1. Collect: name, mobile, address, product details. When you have the required details, Send the list of available payment methods and ask the customer to select one.
