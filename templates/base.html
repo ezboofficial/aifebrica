@@ -280,14 +280,15 @@
     <div class="menu-popup" id="menuPopup">
         <div class="close-btn" id="closeMenu">&#10005;</div>
         <h2>Command Center</h2>
-        <ul>
-            <li><a href="{{ url_for('order_lists') }}" class="{% if request.endpoint == 'order_lists' %}active{% endif %}">Order Lists</a></li>
-            <li><a href="{{ url_for('sales_logs') }}" class="{% if request.endpoint == 'sales_logs' %}active{% endif %}">Sales Logs</a></li>
-            <li><a href="{{ url_for('analyze_ai') }}" class="{% if request.endpoint == 'analyze_ai' %}active{% endif %}">Analyze AI</a></li>
-            <li><a href="{{ url_for('stock_lists') }}" class="{% if request.endpoint == 'stock_lists' %}active{% endif %}">Stock Lists</a></li>
-            <li><a href="{{ url_for('ship_setup') }}" class="{% if request.endpoint == 'ship_setup' %}active{% endif %}">Ship Setup</a></li>
-            <li><a href="{{ url_for('ai_settings') }}" class="{% if request.endpoint == 'ai_settings' %}active{% endif %}">AI Settings</a></li>
-        </ul>
+<ul>
+    <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+    <li><a href="{{ url_for('order_lists') }}" class="{% if request.endpoint == 'order_lists' %}active{% endif %}">Order Lists</a></li>
+    <li><a href="{{ url_for('sales_logs') }}" class="{% if request.endpoint == 'sales_logs' %}active{% endif %}">Sales Logs</a></li>
+    <li><a href="{{ url_for('analyze_ai') }}" class="{% if request.endpoint == 'analyze_ai' %}active{% endif %}">Analyze AI</a></li>
+    <li><a href="{{ url_for('stock_lists') }}" class="{% if request.endpoint == 'stock_lists' %}active{% endif %}">Stock Lists</a></li>
+    <li><a href="{{ url_for('ship_setup') }}" class="{% if request.endpoint == 'ship_setup' %}active{% endif %}">Ship Setup</a></li>
+    <li><a href="{{ url_for('ai_settings') }}" class="{% if request.endpoint == 'ai_settings' %}active{% endif %}">AI Settings</a></li>
+</ul>
     </div>
 
     <!-- Content Box -->
