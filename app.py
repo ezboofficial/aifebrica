@@ -41,15 +41,39 @@ repo = github.get_repo(GITHUB_REPO_NAME)
 USER_DATA_DIR = Path("users")
 AI_ENABLED = True
 
+def clean_gitkeep_files():
+    """Remove .gitkeep files from user directories that have content"""
+    for user_dir in USER_DATA_DIR.iterdir():
+        if user_dir.is_dir():
+            gitkeep = user_dir / ".gitkeep"
+            if gitkeep.exists():
+                # Check if directory has any content besides .gitkeep
+                has_content = any(file.name != ".gitkeep" for file in user_dir.iterdir())
+                if has_content:
+                    try:
+                        gitkeep.unlink()
+                        logger.info(f"Removed .gitkeep from {user_dir}")
+                    except Exception as e:
+                        logger.error(f"Error removing .gitkeep from {user_dir}: {str(e)}")
+
 def ensure_user_dir(user_id):
     """Ensure user directory exists and is properly set up"""
+    # Only process user IDs that start with a digit (real users)
+    if not str(user_id).isdigit():
+        return None
+        
     user_dir = USER_DATA_DIR / str(user_id)
     user_dir.mkdir(parents=True, exist_ok=True)
     
-    # Remove .gitkeep if it exists
+    # Remove .gitkeep if it exists and there's other content
     gitkeep_file = user_dir / ".gitkeep"
     if gitkeep_file.exists():
-        gitkeep_file.unlink()
+        has_content = any(file.name != ".gitkeep" for file in user_dir.iterdir())
+        if has_content:
+            try:
+                gitkeep_file.unlink()
+            except Exception as e:
+                logger.error(f"Error removing .gitkeep: {str(e)}")
         
     return user_dir
 
@@ -74,6 +98,9 @@ def get_user_profile(user_id):
 def update_user_memory(user_id, message, is_ai=False):
     """Update user's conversation history in file"""
     user_dir = ensure_user_dir(user_id)
+    if not user_dir:
+        return
+        
     chat_file = user_dir / "chats.json"
     
     try:
@@ -102,6 +129,9 @@ def update_user_memory(user_id, message, is_ai=False):
 def create_account_info(user_id):
     """Create account info file for new user"""
     user_dir = ensure_user_dir(user_id)
+    if not user_dir:
+        return
+        
     account_file = user_dir / "account_info.json"
     
     if not account_file.exists():
@@ -127,6 +157,9 @@ def create_account_info(user_id):
 def update_account_info(user_id, data=None):
     """Update user's account info file"""
     user_dir = ensure_user_dir(user_id)
+    if not user_dir:
+        return
+        
     account_file = user_dir / "account_info.json"
     
     try:
@@ -159,6 +192,9 @@ def update_account_info(user_id, data=None):
 def get_conversation_history(user_id):
     """Get user's conversation history from file"""
     user_dir = ensure_user_dir(user_id)
+    if not user_dir:
+        return ""
+        
     chat_file = user_dir / "chats.json"
     
     if not chat_file.exists():
@@ -235,6 +271,9 @@ def push_to_github(user_dir, user_id):
                 
     except Exception as e:
         logger.error(f"Error pushing user data to GitHub: {str(e)}")
+
+# Run gitkeep cleanup on startup
+clean_gitkeep_files()
 
 def login_required(f):
     @wraps(f)
