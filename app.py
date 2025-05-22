@@ -16,8 +16,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import send_from_directory
 import datetime
-import json
-from pathlib import Path
 
 load_dotenv()
 
@@ -38,242 +36,8 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
 
-USER_DATA_DIR = Path("users")
+user_memory = {}
 AI_ENABLED = True
-
-def clean_gitkeep_files():
-    """Remove .gitkeep files from user directories that have content"""
-    if not USER_DATA_DIR.exists():
-        return
-        
-    for user_dir in USER_DATA_DIR.iterdir():
-        if user_dir.is_dir():
-            gitkeep = user_dir / ".gitkeep"
-            if gitkeep.exists():
-                # Check if directory has any content besides .gitkeep
-                has_content = any(file.name != ".gitkeep" for file in user_dir.iterdir())
-                if has_content:
-                    try:
-                        gitkeep.unlink()
-                        logger.info(f"Removed .gitkeep from {user_dir}")
-                    except Exception as e:
-                        logger.error(f"Error removing .gitkeep from {user_dir}: {str(e)}")
-
-def ensure_user_dir(user_id):
-    """Ensure user directory exists and is properly set up"""
-    # Only process user IDs that are numeric (real users)
-    if not str(user_id).isdigit():
-        return None
-        
-    user_dir = USER_DATA_DIR / str(user_id)
-    user_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Remove .gitkeep if it exists and there's other content
-    gitkeep_file = user_dir / ".gitkeep"
-    if gitkeep_file.exists():
-        has_content = any(file.name != ".gitkeep" for file in user_dir.iterdir())
-        if has_content:
-            try:
-                gitkeep_file.unlink()
-            except Exception as e:
-                logger.error(f"Error removing .gitkeep: {str(e)}")
-        
-    return user_dir
-
-def get_user_profile(user_id):
-    """Get user profile from Facebook API"""
-    try:
-        params = {
-            "access_token": PAGE_ACCESS_TOKEN,
-            "fields": "first_name,last_name,profile_pic,gender,locale,timezone"
-        }
-        response = requests.get(
-            f"https://graph.facebook.com/v21.0/{user_id}",
-            params=params
-        )
-        if response.status_code == 200:
-            return response.json()
-        logger.error(f"Failed to get user profile: {response.text}")
-    except Exception as e:
-        logger.error(f"Error fetching user profile: {str(e)}")
-    return None
-
-def update_user_memory(user_id, message, is_ai=False):
-    """Update user's conversation history in file"""
-    user_dir = ensure_user_dir(user_id)
-    if not user_dir:
-        return
-        
-    chat_file = user_dir / "chats.json"
-    
-    try:
-        if chat_file.exists():
-            with open(chat_file, 'r') as f:
-                history = json.load(f)
-        else:
-            history = []
-            
-        # Format message with sender info
-        formatted_message = f"{'AI' if is_ai else 'User'}: {message}"
-        history.append(formatted_message)
-        
-        # Keep only last 30 messages
-        history = history[-30:]
-        
-        with open(chat_file, 'w') as f:
-            json.dump(history, f, indent=2)
-            
-        # Push to GitHub
-        push_to_github(user_dir, str(user_id))
-        
-    except Exception as e:
-        logger.error(f"Error updating user memory: {str(e)}")
-
-def create_account_info(user_id):
-    """Create account info file for new user"""
-    user_dir = ensure_user_dir(user_id)
-    if not user_dir:
-        return
-        
-    account_file = user_dir / "account_info.json"
-    
-    if not account_file.exists():
-        try:
-            # Get user profile from Facebook
-            profile = get_user_profile(user_id)
-            
-            account_data = {
-                "user_id": user_id,
-                "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "profile": profile if profile else {},
-                "last_interaction": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "message_count": 0
-            }
-            
-            with open(account_file, 'w') as f:
-                json.dump(account_data, f, indent=2)
-                
-            logger.info(f"Created account info for user {user_id}")
-        except Exception as e:
-            logger.error(f"Error creating account info: {str(e)}")
-
-def update_account_info(user_id, data=None):
-    """Update user's account info file"""
-    user_dir = ensure_user_dir(user_id)
-    if not user_dir:
-        return
-        
-    account_file = user_dir / "account_info.json"
-    
-    try:
-        if account_file.exists():
-            with open(account_file, 'r') as f:
-                account_data = json.load(f)
-        else:
-            account_data = {
-                "user_id": user_id,
-                "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "profile": {},
-                "last_interaction": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "message_count": 0
-            }
-            
-        # Update last interaction time and message count
-        account_data["last_interaction"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        account_data["message_count"] = account_data.get("message_count", 0) + 1
-        
-        # Update with any additional data
-        if data:
-            account_data.update(data)
-            
-        with open(account_file, 'w') as f:
-            json.dump(account_data, f, indent=2)
-            
-    except Exception as e:
-        logger.error(f"Error updating account info: {str(e)}")
-
-def get_conversation_history(user_id):
-    """Get user's conversation history from file"""
-    user_dir = ensure_user_dir(user_id)
-    if not user_dir:
-        return ""
-        
-    chat_file = user_dir / "chats.json"
-    
-    if not chat_file.exists():
-        return ""
-        
-    try:
-        with open(chat_file, 'r') as f:
-            history = json.load(f)
-        return "\n".join(history)
-    except Exception as e:
-        logger.error(f"Error reading user memory: {str(e)}")
-        return ""
-
-def push_to_github(user_dir, user_id):
-    """Push user data to GitHub"""
-    try:
-        repo = github.get_repo(GITHUB_REPO_NAME)
-        
-        # Check if directory exists in repo
-        try:
-            repo.get_contents(f"users/{user_id}")
-        except:
-            # Create directory
-            repo.create_file(
-                path=f"users/{user_id}/.gitkeep",
-                message=f"Create user directory for {user_id}",
-                content="",
-                branch="main"
-            )
-        
-        # Push chat file if exists
-        chat_file = user_dir / "chats.json"
-        if chat_file.exists():
-            with open(chat_file, 'r') as f:
-                content = f.read()
-            
-            try:
-                existing = repo.get_contents(f"users/{user_id}/chats.json")
-                repo.update_file(
-                    path=f"users/{user_id}/chats.json",
-                    message=f"Update chat history for {user_id}",
-                    content=content,
-                    sha=existing.sha
-                )
-            except:
-                repo.create_file(
-                    path=f"users/{user_id}/chats.json",
-                    message=f"Create chat history for {user_id}",
-                    content=content,
-                    branch="main"
-                )
-                
-        # Push account info file if exists
-        account_file = user_dir / "account_info.json"
-        if account_file.exists():
-            with open(account_file, 'r') as f:
-                content = f.read()
-                
-            try:
-                existing = repo.get_contents(f"users/{user_id}/account_info.json")
-                repo.update_file(
-                    path=f"users/{user_id}/account_info.json",
-                    message=f"Update account info for {user_id}",
-                    content=content,
-                    sha=existing.sha
-                )
-            except:
-                repo.create_file(
-                    path=f"users/{user_id}/account_info.json",
-                    message=f"Create account info for {user_id}",
-                    content=content,
-                    branch="main"
-                )
-                
-    except Exception as e:
-        logger.error(f"Error pushing user data to GitHub: {str(e)}")
 
 def login_required(f):
     @wraps(f)
@@ -286,6 +50,14 @@ def login_required(f):
 
 def is_logged_in():
     return session.get('logged_in')
+
+def update_user_memory(user_id, message):
+    if user_id not in user_memory:
+        user_memory[user_id] = deque(maxlen=20)
+    user_memory[user_id].append(message)
+
+def get_conversation_history(user_id):
+    return "\n".join(user_memory.get(user_id, []))
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -355,17 +127,6 @@ def webhook():
             for event in entry.get("messaging", []):
                 if "message" in event:
                     sender_id = event["sender"]["id"]
-                    
-                    # Only process messages from users (not pages)
-                    if not str(sender_id).isdigit():
-                        continue
-                    
-                    # Create/update account info
-                    user_dir = ensure_user_dir(sender_id)
-                    if not (user_dir / "account_info.json").exists():
-                        create_account_info(sender_id)
-                    update_account_info(sender_id)
-                    
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
@@ -399,7 +160,7 @@ def webhook():
                                     )
                                     send_message(sender_id, response)
                                     if matched_product:
-                                        update_user_memory(sender_id, response, is_ai=True)
+                                        update_user_memory(sender_id, response)
                                     image_processed = True
                     
                     if message_text and not image_processed:
@@ -416,14 +177,14 @@ def webhook():
                                     product_text = response.split(" - ")[0]
                                     if product_text:
                                         send_message(sender_id, product_text)
-                                        update_user_memory(sender_id, product_text, is_ai=True)
+                                        update_user_memory(sender_id, product_text)
                             except Exception as e:
                                 logger.error(f"Error processing image URL: {str(e)}")
                                 send_message(sender_id, response)
-                                update_user_memory(sender_id, response, is_ai=True)
+                                update_user_memory(sender_id, response)
                         else:
                             send_message(sender_id, response)
-                            update_user_memory(sender_id, response, is_ai=True)
+                            update_user_memory(sender_id, response)
                     elif not image_processed:
                         send_message(sender_id, "👍")
 
@@ -544,7 +305,9 @@ settings = {{
         "bkash_number": "{settings['payment_methods']['bkash_number']}",
         "nagad_number": "{settings['payment_methods']['nagad_number']}",
         "bkash_type": "{settings['payment_methods']['bkash_type']}",
-        "nagad_type": "{settings['payment_methods']['nagad_type']}"
+        "nagad_type": "{settings['payment_methods']['nagad_type']}",
+        "paypal": {settings['payment_methods']['paypal']},
+        "paypal_email": "{settings['payment_methods']['paypal_email']}"
     }},
     "delivery_records": {delivery_records_str},
     "service_products": "{settings['service_products']}",
@@ -1107,9 +870,6 @@ def send_order_notification(order):
     except Exception as e:
         logger.error(f"Failed to send order notification email: {str(e)}")
         return False
-
-# Run gitkeep cleanup on startup
-clean_gitkeep_files()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
