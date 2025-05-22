@@ -42,70 +42,17 @@ USER_DATA_DIR = Path("users")
 AI_ENABLED = True
 
 def ensure_user_dir(user_id):
-    """Ensure user directory exists and return the Path object"""
+    """Ensure user directory exists"""
     user_dir = USER_DATA_DIR / str(user_id)
     user_dir.mkdir(parents=True, exist_ok=True)
     return user_dir
-
-def get_user_profile(sender_id):
-    """Get user profile info from Facebook API"""
-    try:
-        params = {
-            "access_token": PAGE_ACCESS_TOKEN,
-            "fields": "first_name,last_name,profile_pic,gender,locale,timezone"
-        }
-        response = requests.get(
-            f"https://graph.facebook.com/v12.0/{sender_id}",
-            params=params
-        )
-        if response.status_code == 200:
-            return response.json()
-        logger.error(f"Failed to get user profile: {response.text}")
-        return None
-    except Exception as e:
-        logger.error(f"Error fetching user profile: {str(e)}")
-        return None
-
-def initialize_user_account(user_id):
-    """Initialize user account with info file"""
-    user_dir = ensure_user_dir(user_id)
-    account_file = user_dir / "account_info.json"
-    
-    # Get user profile info from Facebook
-    profile = get_user_profile(user_id)
-    
-    # Create basic account info structure
-    account_info = {
-        "user_id": str(user_id),
-        "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "last_active": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "profile": profile or {},
-        "conversation_count": 0,
-        "message_history": []
-    }
-    
-    # Save to file
-    with open(account_file, 'w') as f:
-        json.dump(account_info, f, indent=2)
-    
-    return account_info
 
 def update_user_memory(user_id, message):
     """Update user's conversation history in file"""
     user_dir = ensure_user_dir(user_id)
     chat_file = user_dir / "chats.json"
-    account_file = user_dir / "account_info.json"
     
     try:
-        # Initialize account info if doesn't exist
-        if not account_file.exists():
-            initialize_user_account(user_id)
-        
-        # Load account info
-        with open(account_file, 'r') as f:
-            account_info = json.load(f)
-        
-        # Load or initialize chat history
         if chat_file.exists():
             with open(chat_file, 'r') as f:
                 history = json.load(f)
@@ -113,32 +60,14 @@ def update_user_memory(user_id, message):
             history = []
             
         # Format the message based on who sent it
-        sender = "User" if isinstance(message, str) else "AI"
-        formatted_message = f"{sender}: {message}"
+        formatted_message = f"User: {message}" if isinstance(message, str) else f"AI: {message}"
         history.append(formatted_message)
-        
-        # Update account info with message
-        account_info['message_history'].append({
-            "sender": sender,
-            "message": message,
-            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
         
         # Keep only last 30 messages
         history = history[-30:]
-        account_info['message_history'] = account_info['message_history'][-30:]
         
-        # Update account stats
-        account_info['last_active'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        account_info['conversation_count'] = len(history)
-        
-        # Save chat history
         with open(chat_file, 'w') as f:
             json.dump(history, f, indent=2)
-            
-        # Save account info
-        with open(account_file, 'w') as f:
-            json.dump(account_info, f, indent=2)
             
         # Push to GitHub
         push_to_github(user_dir, str(user_id))
@@ -169,19 +98,9 @@ def push_to_github(user_dir, user_id):
         
         # Check if directory exists in repo
         try:
-            repo_contents = repo.get_contents(f"users/{user_id}")
-            
-            # Remove .gitkeep if it exists
-            for content in repo_contents:
-                if content.path == f"users/{user_id}/.gitkeep":
-                    repo.delete_file(
-                        path=content.path,
-                        message=f"Remove .gitkeep for user {user_id}",
-                        sha=content.sha
-                    )
-                    break
+            repo.get_contents(f"users/{user_id}")
         except:
-            # Directory doesn't exist, create it
+            # Create directory with .gitkeep
             repo.create_file(
                 path=f"users/{user_id}/.gitkeep",
                 message=f"Create user directory for {user_id}",
@@ -189,30 +108,53 @@ def push_to_github(user_dir, user_id):
                 branch="main"
             )
         
-        # Push all user files
-        for file in user_dir.glob('*'):
-            if file.is_file():
-                with open(file, 'r') as f:
-                    content = f.read()
+        # Push chat file
+        chat_file = user_dir / "chats.json"
+        if chat_file.exists():
+            with open(chat_file, 'r') as f:
+                content = f.read()
+            
+            try:
+                # Try to update existing file
+                existing = repo.get_contents(f"users/{user_id}/chats.json")
+                repo.update_file(
+                    path=f"users/{user_id}/chats.json",
+                    message=f"Update chat history for {user_id}",
+                    content=content,
+                    sha=existing.sha
+                )
                 
+                # Remove .gitkeep if it exists
                 try:
-                    # Try to update existing file
-                    existing = repo.get_contents(f"users/{user_id}/{file.name}")
-                    repo.update_file(
-                        path=f"users/{user_id}/{file.name}",
-                        message=f"Update {file.name} for {user_id}",
-                        content=content,
-                        sha=existing.sha
+                    gitkeep = repo.get_contents(f"users/{user_id}/.gitkeep")
+                    repo.delete_file(
+                        path=f"users/{user_id}/.gitkeep",
+                        message=f"Remove .gitkeep after chats.json creation for {user_id}",
+                        sha=gitkeep.sha
                     )
                 except:
-                    # Create new file
-                    repo.create_file(
-                        path=f"users/{user_id}/{file.name}",
-                        message=f"Create {file.name} for {user_id}",
-                        content=content,
-                        branch="main"
-                    )
+                    pass
                     
+            except:
+                # Create new file
+                repo.create_file(
+                    path=f"users/{user_id}/chats.json",
+                    message=f"Create chat history for {user_id}",
+                    content=content,
+                    branch="main"
+                )
+                
+                # Remove .gitkeep if it exists
+                try:
+                    gitkeep = repo.get_contents(f"users/{user_id}/.gitkeep")
+                    repo.delete_file(
+                        path=f"users/{user_id}/.gitkeep",
+                        message=f"Remove .gitkeep after chats.json creation for {user_id}",
+                        sha=gitkeep.sha
+                    )
+                except:
+                    pass
+                
     except Exception as e:
         logger.error(f"Error pushing user data to GitHub: {str(e)}")
 
@@ -289,24 +231,16 @@ def webhook():
         return "EVENT_RECEIVED", 200
         
     data = request.get_json()
-    logger.info("Received webhook data")
+    logger.info("Received data: %s", data)
 
     if data.get("object") == "page":
         for entry in data["entry"]:
             for event in entry.get("messaging", []):
                 if "message" in event:
                     sender_id = event["sender"]["id"]
-                    
-                    # Initialize user account if it doesn't exist
-                    user_dir = ensure_user_dir(sender_id)
-                    account_file = user_dir / "account_info.json"
-                    if not account_file.exists():
-                        initialize_user_account(sender_id)
-                    
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
-                    # Skip thumbs up reactions
                     is_thumbs_up = False
                     if message_attachments:
                         for attachment in message_attachments:
@@ -324,7 +258,6 @@ def webhook():
                     if is_thumbs_up:
                         continue
 
-                    # Process image attachments
                     image_processed = False
                     if message_attachments:
                         for attachment in message_attachments:
@@ -336,49 +269,34 @@ def webhook():
                                         f"image_url: {image_url}", 
                                         "[Image attachment]"
                                     )
-                                    try:
-                                        send_message(sender_id, response)
-                                        if matched_product:
-                                            update_user_memory(sender_id, response)
-                                    except Exception as e:
-                                        logger.error(f"Failed to send message to {sender_id}: {str(e)}")
+                                    send_message(sender_id, response)
+                                    if matched_product:
+                                        update_user_memory(sender_id, response)
                                     image_processed = True
                     
-                    # Process text messages
                     if message_text and not image_processed:
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
                         response, _ = messageHandler.handle_text_message(conversation_history, message_text)
                         
-                        try:
-                            if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                                try:
-                                    image_url = response.split(" - ")[-1].strip()
-                                    if image_url.startswith(('http://', 'https://')):
-                                        send_image(sender_id, image_url)
-                                        product_text = response.split(" - ")[0]
-                                        if product_text:
-                                            send_message(sender_id, product_text)
-                                            update_user_memory(sender_id, product_text)
-                                except Exception as e:
-                                    logger.error(f"Error processing image URL: {str(e)}")
-                                    send_message(sender_id, response)
-                                    update_user_memory(sender_id, response)
-                            else:
+                        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+                            try:
+                                image_url = response.split(" - ")[-1].strip()
+                                if image_url.startswith(('http://', 'https://')):
+                                    send_image(sender_id, image_url)
+                                    product_text = response.split(" - ")[0]
+                                    if product_text:
+                                        send_message(sender_id, product_text)
+                                        update_user_memory(sender_id, product_text)
+                            except Exception as e:
+                                logger.error(f"Error processing image URL: {str(e)}")
                                 send_message(sender_id, response)
                                 update_user_memory(sender_id, response)
-                        except Exception as e:
-                            logger.error(f"Failed to send message to {sender_id}: {str(e)}")
-                            # Try to send a generic error message
-                            try:
-                                send_message(sender_id, "Sorry, I encountered an error. Please try again.")
-                            except:
-                                pass
+                        else:
+                            send_message(sender_id, response)
+                            update_user_memory(sender_id, response)
                     elif not image_processed:
-                        try:
-                            send_message(sender_id, "👍")
-                        except Exception as e:
-                            logger.error(f"Failed to send thumbs up to {sender_id}: {str(e)}")
+                        send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
     
