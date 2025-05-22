@@ -66,7 +66,7 @@ def static_files(filename):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if is_logged_in():
-        return redirect(url_for('order_lists'))
+        return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -76,7 +76,7 @@ def login():
             password == ADMIN_PASSWORD):
             session['logged_in'] = True
             flash('Login successful!', 'success')
-            next_page = request.args.get('next', url_for('order_lists'))
+            next_page = request.args.get('next', url_for('dashboard'))
             return redirect(next_page)
         else:
             flash('Invalid username or password', 'error')
@@ -93,8 +93,17 @@ def logout():
 @app.route('/')
 def home():
     if is_logged_in():
-        return redirect(url_for('order_lists'))
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', 
+                         title="Dashboard", 
+                         orders=messageHandler.get_orders(),
+                         settings=messageHandler.get_settings(),
+                         AI_ENABLED=AI_ENABLED)
 
 @app.route('/toggle_ai', methods=['POST'])
 @login_required
