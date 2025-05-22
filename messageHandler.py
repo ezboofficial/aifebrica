@@ -14,7 +14,6 @@ import cv2
 import numpy as np
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
-import json
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -328,32 +327,18 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-def get_system_instruction(user_id=None):
+# Optimized system instruction template
+def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
     order_list = format_order_list()
     delivery_records = format_delivery_records()
-    
-    # Get conversation history if user_id provided
-    conversation_history = ""
-    if user_id:
-        try:
-            os.makedirs(f"users/{user_id}", exist_ok=True)
-            if os.path.exists(f"users/{user_id}/chats.json"):
-                with open(f"users/{user_id}/chats.json", 'r') as f:
-                    chats = json.load(f)
-                    conversation_history = "\n".join(chats)
-        except Exception as e:
-            logger.error(f"Error loading conversation history: {str(e)}")
     
     return f"""# {settings['shop_name']} AI Chatbot System Instructions
 
 ## Introduction
 I am {settings['ai_name']}, your AI assistant from {settings['shop_name']}. My purpose is to help with product inquiries and orders, as well as to sell products.
 I respond in short, clear sentences. For unrelated questions, I'll politely redirect to {settings['shop_name']}-related topics. I can't share any details about my creation or creator because it's confidential.
-
-## Conversation History
-{conversation_history}
 
 ## Company Info
 Shop Name: {settings['shop_name']}
