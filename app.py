@@ -212,17 +212,6 @@ def webhook():
                                     send_message(sender_id, response)
                                     if matched_product:
                                         update_user_memory(sender_id, response)
-                                    else:
-                                        # Send additional guidance if no match found
-                                        guidance_message = (
-                                            "I couldn't find an exact match for this image. "
-                                            "Could you please:\n"
-                                            "1. Send a clearer picture of the product, or\n"
-                                            "2. Describe what you're looking for?\n\n"
-                                            "I'll do my best to help you find it!"
-                                        )
-                                        send_message(sender_id, guidance_message)
-                                        update_user_memory(sender_id, guidance_message)
                                     image_processed = True
                     
                     if message_text and not image_processed:
