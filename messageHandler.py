@@ -48,6 +48,7 @@ settings = {
         "paypal_email": ""
     },
     "delivery_records": [
+        {'country': 'Bangladesh', 'region': 'Inside Dhaka', 'delivery_time': '1-3 days', 'delivery_charge': 60},
     ],
     "service_products": "Selling high-quality Shirts, Pants, and Shoes.",
     "return_policy": "Customers can return products within 7 days if there is a valid issue. Money will be refunded without delivery charges."
