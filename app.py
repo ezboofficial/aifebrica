@@ -4,8 +4,6 @@ import logging
 from flask_cors import CORS
 import requests
 import messageHandler
-from collections import deque
-from brain import query
 from github import Github
 import urllib.parse
 from functools import wraps
@@ -16,6 +14,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import send_from_directory
 import datetime
+import json
+from pathlib import Path
 
 load_dotenv()
 
@@ -36,7 +36,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
 
-user_memory = {}
 AI_ENABLED = True
 
 def login_required(f):
@@ -51,13 +50,81 @@ def login_required(f):
 def is_logged_in():
     return session.get('logged_in')
 
-def update_user_memory(user_id, message):
-    if user_id not in user_memory:
-        user_memory[user_id] = deque(maxlen=20)
-    user_memory[user_id].append(message)
+def get_user_chat_file(user_id):
+    """Get the path to the user's chat file"""
+    users_dir = Path('users')
+    users_dir.mkdir(exist_ok=True)
+    return users_dir / f'{user_id}_chats.json'
+
+def update_user_memory(user_id, message, sender='User'):
+    """Update user's chat history with a new message"""
+    chat_file = get_user_chat_file(user_id)
+    
+    try:
+        if chat_file.exists():
+            with open(chat_file, 'r') as f:
+                chat_history = json.load(f)
+        else:
+            chat_history = []
+            
+        # Add new message
+        chat_history.append(f"{sender}: {message}")
+        
+        # Keep only last 20 messages
+        chat_history = chat_history[-20:]
+        
+        # Save back to file
+        with open(chat_file, 'w') as f:
+            json.dump(chat_history, f)
+            
+        # Push to GitHub
+        push_to_github(str(chat_file))
+            
+    except Exception as e:
+        logger.error(f"Error updating user memory for {user_id}: {str(e)}")
 
 def get_conversation_history(user_id):
-    return "\n".join(user_memory.get(user_id, []))
+    """Get user's conversation history"""
+    chat_file = get_user_chat_file(user_id)
+    
+    if not chat_file.exists():
+        return ""
+        
+    try:
+        with open(chat_file, 'r') as f:
+            chat_history = json.load(f)
+        return "\n".join(chat_history)
+    except Exception as e:
+        logger.error(f"Error reading chat history for {user_id}: {str(e)}")
+        return ""
+
+def push_to_github(file_path):
+    """Push file changes to GitHub"""
+    try:
+        repo = github.get_repo(GITHUB_REPO_NAME)
+        with open(file_path, 'r') as f:
+            content = f.read()
+        
+        try:
+            # Try to get existing file to update it
+            file_in_repo = repo.get_contents(file_path)
+            repo.update_file(
+                path=file_path,
+                message=f"Update {file_path}",
+                content=content,
+                sha=file_in_repo.sha
+            )
+        except Exception:
+            # File doesn't exist, create it
+            repo.create_file(
+                path=file_path,
+                message=f"Create {file_path}",
+                content=content,
+                branch="main"
+            )
+            
+    except Exception as e:
+        logger.error(f"Failed to push {file_path} to GitHub: {str(e)}")
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -160,7 +227,7 @@ def webhook():
                                     )
                                     send_message(sender_id, response)
                                     if matched_product:
-                                        update_user_memory(sender_id, response)
+                                        update_user_memory(sender_id, response, sender='AI')
                                     image_processed = True
                     
                     if message_text and not image_processed:
@@ -177,14 +244,14 @@ def webhook():
                                     product_text = response.split(" - ")[0]
                                     if product_text:
                                         send_message(sender_id, product_text)
-                                        update_user_memory(sender_id, product_text)
+                                        update_user_memory(sender_id, product_text, sender='AI')
                             except Exception as e:
                                 logger.error(f"Error processing image URL: {str(e)}")
                                 send_message(sender_id, response)
-                                update_user_memory(sender_id, response)
+                                update_user_memory(sender_id, response, sender='AI')
                         else:
                             send_message(sender_id, response)
-                            update_user_memory(sender_id, response)
+                            update_user_memory(sender_id, response, sender='AI')
                     elif not image_processed:
                         send_message(sender_id, "👍")
 
