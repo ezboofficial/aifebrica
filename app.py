@@ -42,10 +42,34 @@ USER_DATA_DIR = Path("users")
 AI_ENABLED = True
 
 def ensure_user_dir(user_id):
-    """Ensure user directory exists"""
+    """Ensure user directory exists and is properly set up"""
     user_dir = USER_DATA_DIR / str(user_id)
     user_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Remove .gitkeep if it exists
+    gitkeep_file = user_dir / ".gitkeep"
+    if gitkeep_file.exists():
+        gitkeep_file.unlink()
+        
     return user_dir
+
+def get_user_profile(user_id):
+    """Get user profile from Facebook API"""
+    try:
+        params = {
+            "access_token": PAGE_ACCESS_TOKEN,
+            "fields": "first_name,last_name,profile_pic,gender,locale,timezone"
+        }
+        response = requests.get(
+            f"https://graph.facebook.com/v21.0/{user_id}",
+            params=params
+        )
+        if response.status_code == 200:
+            return response.json()
+        logger.error(f"Failed to get user profile: {response.text}")
+    except Exception as e:
+        logger.error(f"Error fetching user profile: {str(e)}")
+    return None
 
 def update_user_memory(user_id, message, is_ai=False):
     """Update user's conversation history in file"""
@@ -69,16 +93,68 @@ def update_user_memory(user_id, message, is_ai=False):
         with open(chat_file, 'w') as f:
             json.dump(history, f, indent=2)
             
-        # Remove .gitkeep if it exists
-        gitkeep_file = user_dir / ".gitkeep"
-        if gitkeep_file.exists():
-            gitkeep_file.unlink()
-            
         # Push to GitHub
         push_to_github(user_dir, str(user_id))
         
     except Exception as e:
         logger.error(f"Error updating user memory: {str(e)}")
+
+def create_account_info(user_id):
+    """Create account info file for new user"""
+    user_dir = ensure_user_dir(user_id)
+    account_file = user_dir / "account_info.json"
+    
+    if not account_file.exists():
+        try:
+            # Get user profile from Facebook
+            profile = get_user_profile(user_id)
+            
+            account_data = {
+                "user_id": user_id,
+                "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "profile": profile if profile else {},
+                "last_interaction": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message_count": 0
+            }
+            
+            with open(account_file, 'w') as f:
+                json.dump(account_data, f, indent=2)
+                
+            logger.info(f"Created account info for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error creating account info: {str(e)}")
+
+def update_account_info(user_id, data=None):
+    """Update user's account info file"""
+    user_dir = ensure_user_dir(user_id)
+    account_file = user_dir / "account_info.json"
+    
+    try:
+        if account_file.exists():
+            with open(account_file, 'r') as f:
+                account_data = json.load(f)
+        else:
+            account_data = {
+                "user_id": user_id,
+                "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "profile": {},
+                "last_interaction": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message_count": 0
+            }
+            
+        # Update last interaction time and message count
+        account_data["last_interaction"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        account_data["message_count"] = account_data.get("message_count", 0) + 1
+        
+        # Update with any additional data
+        if data:
+            account_data.update(data)
+            
+        with open(account_file, 'w') as f:
+            json.dump(account_data, f, indent=2)
+            
+    except Exception as e:
+        logger.error(f"Error updating account info: {str(e)}")
 
 def get_conversation_history(user_id):
     """Get user's conversation history from file"""
@@ -113,14 +189,13 @@ def push_to_github(user_dir, user_id):
                 branch="main"
             )
         
-        # Push chat file
+        # Push chat file if exists
         chat_file = user_dir / "chats.json"
         if chat_file.exists():
             with open(chat_file, 'r') as f:
                 content = f.read()
             
             try:
-                # Try to update existing file
                 existing = repo.get_contents(f"users/{user_id}/chats.json")
                 repo.update_file(
                     path=f"users/{user_id}/chats.json",
@@ -129,10 +204,31 @@ def push_to_github(user_dir, user_id):
                     sha=existing.sha
                 )
             except:
-                # Create new file
                 repo.create_file(
                     path=f"users/{user_id}/chats.json",
                     message=f"Create chat history for {user_id}",
+                    content=content,
+                    branch="main"
+                )
+                
+        # Push account info file if exists
+        account_file = user_dir / "account_info.json"
+        if account_file.exists():
+            with open(account_file, 'r') as f:
+                content = f.read()
+                
+            try:
+                existing = repo.get_contents(f"users/{user_id}/account_info.json")
+                repo.update_file(
+                    path=f"users/{user_id}/account_info.json",
+                    message=f"Update account info for {user_id}",
+                    content=content,
+                    sha=existing.sha
+                )
+            except:
+                repo.create_file(
+                    path=f"users/{user_id}/account_info.json",
+                    message=f"Create account info for {user_id}",
                     content=content,
                     branch="main"
                 )
@@ -220,6 +316,13 @@ def webhook():
             for event in entry.get("messaging", []):
                 if "message" in event:
                     sender_id = event["sender"]["id"]
+                    
+                    # Create/update account info
+                    user_dir = ensure_user_dir(sender_id)
+                    if not (user_dir / "account_info.json").exists():
+                        create_account_info(sender_id)
+                    update_account_info(sender_id)
+                    
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
