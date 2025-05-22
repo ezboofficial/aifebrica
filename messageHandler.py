@@ -1,4 +1,4 @@
-import os
+mport os
 import logging
 import requests
 from io import BytesIO
@@ -523,7 +523,7 @@ def handle_text_message(user_message, last_message):
                     # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
-                    return "I couldn't find a matching product in our catalog. Could you please:\n1. Send a clearer picture of the product\nOR\n2. Describe what you're looking for (type, color, size)?\nWe'll be happy to help!", None
+                    return "I couldn't find a matching product in our catalog. Could you please describe what you're looking for?", None
 
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
