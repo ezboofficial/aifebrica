@@ -11,7 +11,7 @@
         /* Dashboard Grid Layout */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -224,51 +224,42 @@
     </style>
 
     <div class="dashboard-container">
-        <!-- Welcome Header -->
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #00ffff; font-size: 2rem; margin-bottom: 10px;">Dashboard</h1>
-        </div>
-
         <!-- Performance Metrics Section -->
         <div class="dashboard-grid">
             <div class="metric-card">
                 <h3><i>⚡</i> API Response Speed</h3>
-                <div class="value">142ms</div>
+                <div class="value">{{ "{:.0f}".format(avg_response_time) }}ms</div>
                 <div class="description">Average response time for AI queries</div>
                 <div class="meter-container">
-                    <div class="meter-bar" style="width: 85%;"></div>
+                    <div class="meter-bar" style="width: {% if avg_response_time < 500 %}90{% elif avg_response_time < 1000 %}70{% else %}50{% endif %}%;"></div>
                 </div>
-                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">Optimal</div>
-            </div>
-            
-            <div class="metric-card">
-                <h3><i>📨</i> Total Messages</h3>
-                <div class="value">1,248</div>
-                <div class="description">Messages processed by the AI this month</div>
-                <div class="meter-container">
-                    <div class="meter-bar" style="width: 65%;"></div>
+                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">
+                    {% if avg_response_time < 500 %}Excellent{% elif avg_response_time < 1000 %}Good{% else %}Needs Improvement{% endif %}
                 </div>
-                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">Moderate</div>
             </div>
             
             <div class="metric-card">
                 <h3><i>🌐</i> AI Traffic</h3>
-                <div class="value">High</div>
-                <div class="description">Current server load from AI requests</div>
+                <div class="value">{{ active_users }}</div>
+                <div class="description">Active users in last 24 hours</div>
                 <div class="meter-container">
-                    <div class="meter-bar" style="width: 72%;"></div>
+                    <div class="meter-bar" style="width: {% if active_users > 50 %}90{% elif active_users > 20 %}70{% else %}50{% endif %}%;"></div>
                 </div>
-                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">Stable</div>
+                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">
+                    {% if active_users > 50 %}High{% elif active_users > 20 %}Moderate{% else %}Low{% endif %}
+                </div>
             </div>
             
             <div class="metric-card">
-                <h3><i>📊</i> Uptime</h3>
-                <div class="value">99.98%</div>
-                <div class="description">System availability over last 30 days</div>
+                <h3><i>📨</i> Total Messages</h3>
+                <div class="value">{{ total_messages }}</div>
+                <div class="description">Messages processed in last 30 days</div>
                 <div class="meter-container">
-                    <div class="meter-bar" style="width: 99%;"></div>
+                    <div class="meter-bar" style="width: {% if total_messages > 1000 %}90{% elif total_messages > 500 %}70{% else %}50{% endif %}%;"></div>
                 </div>
-                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">Excellent</div>
+                <div style="text-align: right; color: #00ffff; font-size: 0.8rem; margin-top: 5px;">
+                    {% if total_messages > 1000 %}High{% elif total_messages > 500 %}Moderate{% else %}Low{% endif %}
+                </div>
             </div>
         </div>
 
