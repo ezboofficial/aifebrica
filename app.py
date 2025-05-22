@@ -16,8 +16,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import send_from_directory
 import datetime
-import json
-from pathlib import Path
 
 load_dotenv()
 
@@ -38,125 +36,8 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
 
-USER_DATA_DIR = Path("users")
+user_memory = {}
 AI_ENABLED = True
-
-def ensure_user_dir(user_id):
-    """Ensure user directory exists"""
-    user_dir = USER_DATA_DIR / str(user_id)
-    user_dir.mkdir(parents=True, exist_ok=True)
-    return user_dir
-
-def update_user_memory(user_id, message):
-    """Update user's conversation history in file"""
-    user_dir = ensure_user_dir(user_id)
-    chat_file = user_dir / "chats.json"
-    
-    try:
-        if chat_file.exists():
-            with open(chat_file, 'r') as f:
-                history = json.load(f)
-        else:
-            history = []
-            
-        # Format the message based on who sent it
-        formatted_message = f"User: {message}" if isinstance(message, str) else f"AI: {message}"
-        history.append(formatted_message)
-        
-        # Keep only last 30 messages
-        history = history[-30:]
-        
-        with open(chat_file, 'w') as f:
-            json.dump(history, f, indent=2)
-            
-        # Push to GitHub
-        push_to_github(user_dir, str(user_id))
-        
-    except Exception as e:
-        logger.error(f"Error updating user memory: {str(e)}")
-
-def get_conversation_history(user_id):
-    """Get user's conversation history from file"""
-    user_dir = ensure_user_dir(user_id)
-    chat_file = user_dir / "chats.json"
-    
-    if not chat_file.exists():
-        return ""
-        
-    try:
-        with open(chat_file, 'r') as f:
-            history = json.load(f)
-        return "\n".join(history)
-    except Exception as e:
-        logger.error(f"Error reading user memory: {str(e)}")
-        return ""
-
-def push_to_github(user_dir, user_id):
-    """Push user data to GitHub"""
-    try:
-        repo = github.get_repo(GITHUB_REPO_NAME)
-        
-        # Check if directory exists in repo
-        try:
-            repo.get_contents(f"users/{user_id}")
-        except:
-            # Create directory with .gitkeep
-            repo.create_file(
-                path=f"users/{user_id}/.gitkeep",
-                message=f"Create user directory for {user_id}",
-                content="",
-                branch="main"
-            )
-        
-        # Push chat file
-        chat_file = user_dir / "chats.json"
-        if chat_file.exists():
-            with open(chat_file, 'r') as f:
-                content = f.read()
-            
-            try:
-                # Try to update existing file
-                existing = repo.get_contents(f"users/{user_id}/chats.json")
-                repo.update_file(
-                    path=f"users/{user_id}/chats.json",
-                    message=f"Update chat history for {user_id}",
-                    content=content,
-                    sha=existing.sha
-                )
-                
-                # Remove .gitkeep if it exists
-                try:
-                    gitkeep = repo.get_contents(f"users/{user_id}/.gitkeep")
-                    repo.delete_file(
-                        path=f"users/{user_id}/.gitkeep",
-                        message=f"Remove .gitkeep after chats.json creation for {user_id}",
-                        sha=gitkeep.sha
-                    )
-                except:
-                    pass
-                    
-            except:
-                # Create new file
-                repo.create_file(
-                    path=f"users/{user_id}/chats.json",
-                    message=f"Create chat history for {user_id}",
-                    content=content,
-                    branch="main"
-                )
-                
-                # Remove .gitkeep if it exists
-                try:
-                    gitkeep = repo.get_contents(f"users/{user_id}/.gitkeep")
-                    repo.delete_file(
-                        path=f"users/{user_id}/.gitkeep",
-                        message=f"Remove .gitkeep after chats.json creation for {user_id}",
-                        sha=gitkeep.sha
-                    )
-                except:
-                    pass
-                
-    except Exception as e:
-        logger.error(f"Error pushing user data to GitHub: {str(e)}")
 
 def login_required(f):
     @wraps(f)
@@ -169,6 +50,14 @@ def login_required(f):
 
 def is_logged_in():
     return session.get('logged_in')
+
+def update_user_memory(user_id, message):
+    if user_id not in user_memory:
+        user_memory[user_id] = deque(maxlen=20)
+    user_memory[user_id].append(message)
+
+def get_conversation_history(user_id):
+    return "\n".join(user_memory.get(user_id, []))
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -264,7 +153,7 @@ def webhook():
                             if attachment.get("type") == "image" and not is_thumbs_up:
                                 image_url = attachment["payload"].get("url")
                                 if image_url:
-                                    update_user_memory(sender_id, f"[User sent an image: {image_url}]")
+                                    update_user_memory(sender_id, "[User sent an image]")
                                     response, matched_product = messageHandler.handle_text_message(
                                         f"image_url: {image_url}", 
                                         "[Image attachment]"
@@ -277,7 +166,8 @@ def webhook():
                     if message_text and not image_processed:
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
-                        response, _ = messageHandler.handle_text_message(conversation_history, message_text)
+                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                        response, _ = messageHandler.handle_text_message(full_message, message_text)
                         
                         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                             try:
@@ -415,7 +305,9 @@ settings = {{
         "bkash_number": "{settings['payment_methods']['bkash_number']}",
         "nagad_number": "{settings['payment_methods']['nagad_number']}",
         "bkash_type": "{settings['payment_methods']['bkash_type']}",
-        "nagad_type": "{settings['payment_methods']['nagad_type']}"
+        "nagad_type": "{settings['payment_methods']['nagad_type']}",
+        "paypal": {settings['payment_methods']['paypal']},
+        "paypal_email": "{settings['payment_methods']['paypal_email']}"
     }},
     "delivery_records": {delivery_records_str},
     "service_products": "{settings['service_products']}",
