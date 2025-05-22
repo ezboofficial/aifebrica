@@ -47,12 +47,12 @@
         }
 
         /* Logo */
-.logo img {
-  height: 40px;       /* Adjust based on your design */
-  width: auto;        /* Keeps the image proportion */
-  display: block;     /* Removes bottom whitespace */
-  object-fit: contain;
-}
+        .logo img {
+            height: 40px;
+            width: auto;
+            display: block;
+            object-fit: contain;
+        }
 
         /* Menu Icon */
         .menu-icon {
@@ -281,6 +281,7 @@
         <div class="close-btn" id="closeMenu">&#10005;</div>
         <h2>Command Center</h2>
         <ul>
+            <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
             <li><a href="{{ url_for('order_lists') }}" class="{% if request.endpoint == 'order_lists' %}active{% endif %}">Order Lists</a></li>
             <li><a href="{{ url_for('sales_logs') }}" class="{% if request.endpoint == 'sales_logs' %}active{% endif %}">Sales Logs</a></li>
             <li><a href="{{ url_for('analyze_ai') }}" class="{% if request.endpoint == 'analyze_ai' %}active{% endif %}">Analyze AI</a></li>
@@ -294,7 +295,9 @@
     <div class="content-box">
         <!-- Dynamic Heading -->
         <h2 class="dynamic-heading">
-            {% if request.endpoint == 'order_lists' %}
+            {% if request.endpoint == 'dashboard' %}
+                Dashboard
+            {% elif request.endpoint == 'order_lists' %}
                 Order Management
             {% elif request.endpoint == 'sales_logs' %}
                 Sales Analytics
