@@ -271,11 +271,8 @@
     <!-- Top Bar (Logo and Menu Icon) -->
     <div class="top-bar">
         <!-- Logo -->
-       <a href="/dashboard" class="logo">
-  <div>
-    <img src="/static/aiPanel-full-logo.png" alt="a!Panel Logo" />
-  </div>
-</a>
+        <div class="logo"><img src="/static/aiPanel-full-logo.png" alt="a!Panel Logo" /></div>
+        <!-- Menu Icon -->
         <div class="menu-icon" id="menuIcon">&#9776;</div>
     </div>
 
@@ -283,37 +280,34 @@
     <div class="menu-popup" id="menuPopup">
         <div class="close-btn" id="closeMenu">&#10005;</div>
         <h2>Command Center</h2>
-<ul>
-    <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
-    <li><a href="{{ url_for('order_lists') }}" class="{% if request.endpoint == 'order_lists' %}active{% endif %}">Order Lists</a></li>
-    <li><a href="{{ url_for('sales_logs') }}" class="{% if request.endpoint == 'sales_logs' %}active{% endif %}">Sales Logs</a></li>
-    <li><a href="{{ url_for('analyze_ai') }}" class="{% if request.endpoint == 'analyze_ai' %}active{% endif %}">Analyze AI</a></li>
-    <li><a href="{{ url_for('stock_lists') }}" class="{% if request.endpoint == 'stock_lists' %}active{% endif %}">Stock Lists</a></li>
-    <li><a href="{{ url_for('ship_setup') }}" class="{% if request.endpoint == 'ship_setup' %}active{% endif %}">Ship Setup</a></li>
-    <li><a href="{{ url_for('ai_settings') }}" class="{% if request.endpoint == 'ai_settings' %}active{% endif %}">AI Settings</a></li>
-</ul>
+        <ul>
+            <li><a href="{{ url_for('order_lists') }}" class="{% if request.endpoint == 'order_lists' %}active{% endif %}">Order Lists</a></li>
+            <li><a href="{{ url_for('sales_logs') }}" class="{% if request.endpoint == 'sales_logs' %}active{% endif %}">Sales Logs</a></li>
+            <li><a href="{{ url_for('analyze_ai') }}" class="{% if request.endpoint == 'analyze_ai' %}active{% endif %}">Analyze AI</a></li>
+            <li><a href="{{ url_for('stock_lists') }}" class="{% if request.endpoint == 'stock_lists' %}active{% endif %}">Stock Lists</a></li>
+            <li><a href="{{ url_for('ship_setup') }}" class="{% if request.endpoint == 'ship_setup' %}active{% endif %}">Ship Setup</a></li>
+            <li><a href="{{ url_for('ai_settings') }}" class="{% if request.endpoint == 'ai_settings' %}active{% endif %}">AI Settings</a></li>
+        </ul>
     </div>
 
     <!-- Content Box -->
     <div class="content-box">
         <!-- Dynamic Heading -->
-<h2 class="dynamic-heading">
-    {% if request.endpoint == 'dashboard' %}
-        Dashboard
-    {% elif request.endpoint == 'order_lists' %}
-        Order Management
-    {% elif request.endpoint == 'sales_logs' %}
-        Sales Analytics
-    {% elif request.endpoint == 'analyze_ai' %}
-        Business Insights
-    {% elif request.endpoint == 'stock_lists' %}
-        Inventory Control
-    {% elif request.endpoint == 'ship_setup' %}
-        Shipping Config
-    {% elif request.endpoint == 'ai_settings' %}
-        AI Configuration
-    {% endif %}
-</h2>
+        <h2 class="dynamic-heading">
+            {% if request.endpoint == 'order_lists' %}
+                Order Management
+            {% elif request.endpoint == 'sales_logs' %}
+                Sales Analytics
+            {% elif request.endpoint == 'analyze_ai' %}
+                Business Insights
+            {% elif request.endpoint == 'stock_lists' %}
+                Inventory Control
+            {% elif request.endpoint == 'ship_setup' %}
+                Shipping Config
+            {% elif request.endpoint == 'ai_settings' %}
+                AI Configuration
+            {% endif %}
+        </h2>
 
         {% block content %}{% endblock %}
     </div>
