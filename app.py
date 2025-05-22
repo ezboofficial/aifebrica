@@ -93,9 +93,9 @@ def logout():
 @app.route('/')
 def home():
     if is_logged_in():
-        return redirect(url_for('order_lists'))
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
-
+    
 @app.route('/toggle_ai', methods=['POST'])
 @login_required
 def toggle_ai():
@@ -371,6 +371,57 @@ def update_github_repo_orders(orders):
         logger.info("GitHub orders updated")
     except Exception as e:
         logger.error(f"Failed to update GitHub orders: {str(e)}")
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    total_earnings = sum(order['total'] for order in messageHandler.sales_logs if 'total' in order)
+    total_orders = len(messageHandler.sales_logs) + len(messageHandler.get_orders())
+    delivered_orders = len([order for order in messageHandler.sales_logs if order['status'] == 'Delivered'])
+    canceled_orders = len([order for order in messageHandler.sales_logs if order['status'] == 'Canceled'])
+    preparing_orders = len([order for order in messageHandler.get_orders() if order['status'] == 'Preparing'])
+    shipping_orders = len([order for order in messageHandler.get_orders() if order['status'] == 'Shipping'])
+    delivering_orders = len([order for order in messageHandler.get_orders() if order['status'] == 'Delivering'])
+
+    from collections import defaultdict
+    product_sales = defaultdict(int)
+    for order in messageHandler.sales_logs:
+        product_sales[order['product']] += 1
+    best_selling_products = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:5]
+    best_selling_products_labels = [product[0] for product in best_selling_products]
+    best_selling_products_data = [product[1] for product in best_selling_products]
+
+    from datetime import datetime, timedelta
+    orders_over_time = defaultdict(int)
+    for order in messageHandler.sales_logs:
+        order_date = datetime.strptime(order['date'], "%Y-%m-%d")
+        if order_date >= datetime.now() - timedelta(days=7):
+            orders_over_time[order_date.strftime("%Y-%m-%d")] += 1
+    orders_over_time_labels = sorted(orders_over_time.keys())
+    orders_over_time_data = [orders_over_time[date] for date in orders_over_time_labels]
+
+    max_earnings = max(total_earnings, 1)
+    max_orders = max(total_orders, 1)
+
+    return render_template(
+        'dashboard.html',
+        title="Dashboard",
+        total_earnings=total_earnings,
+        total_orders=total_orders,
+        preparing_orders=preparing_orders,
+        delivered_orders=delivered_orders,
+        canceled_orders=canceled_orders,
+        shipping_orders=shipping_orders,
+        delivering_orders=delivering_orders,
+        best_selling_products_labels=best_selling_products_labels,
+        best_selling_products_data=best_selling_products_data,
+        orders_over_time_labels=orders_over_time_labels,
+        orders_over_time_data=orders_over_time_data,
+        max_earnings=max_earnings,
+        max_orders=max_orders,
+        settings=messageHandler.get_settings(),
+        orders=messageHandler.get_orders()[:5]  # Only get the 5 most recent orders
+    )
 
 @app.route('/orderlists', methods=['GET', 'POST'])
 @login_required
