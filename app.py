@@ -47,7 +47,7 @@ def ensure_user_dir(user_id):
     user_dir.mkdir(parents=True, exist_ok=True)
     return user_dir
 
-def update_user_memory(user_id, message):
+def update_user_memory(user_id, message, is_ai=False):
     """Update user's conversation history in file"""
     user_dir = ensure_user_dir(user_id)
     chat_file = user_dir / "chats.json"
@@ -59,12 +59,20 @@ def update_user_memory(user_id, message):
         else:
             history = []
             
-        history.append(message)
-        # Keep only last 20 messages
-        history = history[-20:]
+        # Format message with sender info
+        formatted_message = f"{'AI' if is_ai else 'User'}: {message}"
+        history.append(formatted_message)
+        
+        # Keep only last 30 messages
+        history = history[-30:]
         
         with open(chat_file, 'w') as f:
-            json.dump(history, f)
+            json.dump(history, f, indent=2)
+            
+        # Remove .gitkeep if it exists
+        gitkeep_file = user_dir / ".gitkeep"
+        if gitkeep_file.exists():
+            gitkeep_file.unlink()
             
         # Push to GitHub
         push_to_github(user_dir, str(user_id))
@@ -245,7 +253,7 @@ def webhook():
                                     )
                                     send_message(sender_id, response)
                                     if matched_product:
-                                        update_user_memory(sender_id, response)
+                                        update_user_memory(sender_id, response, is_ai=True)
                                     image_processed = True
                     
                     if message_text and not image_processed:
@@ -262,14 +270,14 @@ def webhook():
                                     product_text = response.split(" - ")[0]
                                     if product_text:
                                         send_message(sender_id, product_text)
-                                        update_user_memory(sender_id, product_text)
+                                        update_user_memory(sender_id, product_text, is_ai=True)
                             except Exception as e:
                                 logger.error(f"Error processing image URL: {str(e)}")
                                 send_message(sender_id, response)
-                                update_user_memory(sender_id, response)
+                                update_user_memory(sender_id, response, is_ai=True)
                         else:
                             send_message(sender_id, response)
-                            update_user_memory(sender_id, response)
+                            update_user_memory(sender_id, response, is_ai=True)
                     elif not image_processed:
                         send_message(sender_id, "👍")
 
