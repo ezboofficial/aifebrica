@@ -38,6 +38,76 @@ repo = github.get_repo(GITHUB_REPO_NAME)
 
 AI_ENABLED = True
 
+def ensure_user_directory(user_id):
+    """Ensure user directory exists and is initialized"""
+    user_dir = Path(f"users/{user_id}")
+    user_dir.mkdir(parents=True, exist_ok=True)
+    return user_dir
+
+def update_user_memory(user_id, message):
+    """Update user's chat history in file"""
+    user_dir = ensure_user_directory(user_id)
+    chat_file = user_dir / "chats.json"
+    
+    try:
+        # Load existing chats
+        if chat_file.exists():
+            with open(chat_file, 'r') as f:
+                chats = json.load(f)
+        else:
+            chats = []
+            
+        # Add new message and keep only last 20
+        chats.append(message)
+        chats = chats[-20:]
+        
+        # Save back to file
+        with open(chat_file, 'w') as f:
+            json.dump(chats, f, indent=2)
+            
+    except Exception as e:
+        logger.error(f"Error updating user memory: {str(e)}")
+
+def get_conversation_history(user_id):
+    """Get user's conversation history from file"""
+    user_dir = ensure_user_directory(user_id)
+    chat_file = user_dir / "chats.json"
+    
+    if not chat_file.exists():
+        return ""
+        
+    try:
+        with open(chat_file, 'r') as f:
+            chats = json.load(f)
+        return "\n".join(chats)
+    except Exception as e:
+        logger.error(f"Error reading user memory: {str(e)}")
+        return ""
+
+def update_user_info(user_id, info):
+    """Update user info file with additional data"""
+    user_dir = ensure_user_directory(user_id)
+    info_file = user_dir / "user_info.json"
+    
+    try:
+        # Load existing info or create new
+        if info_file.exists():
+            with open(info_file, 'r') as f:
+                existing_info = json.load(f)
+        else:
+            existing_info = {}
+            
+        # Update with new info
+        existing_info.update(info)
+        existing_info['last_updated'] = datetime.datetime.now().isoformat()
+        
+        # Save back to file
+        with open(info_file, 'w') as f:
+            json.dump(existing_info, f, indent=2)
+            
+    except Exception as e:
+        logger.error(f"Error updating user info: {str(e)}")
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -49,82 +119,6 @@ def login_required(f):
 
 def is_logged_in():
     return session.get('logged_in')
-
-def get_user_chat_file(user_id):
-    """Get the path to the user's chat file"""
-    users_dir = Path('users')
-    users_dir.mkdir(exist_ok=True)
-    return users_dir / f'{user_id}_chats.json'
-
-def update_user_memory(user_id, message, sender='User'):
-    """Update user's chat history with a new message"""
-    chat_file = get_user_chat_file(user_id)
-    
-    try:
-        if chat_file.exists():
-            with open(chat_file, 'r') as f:
-                chat_history = json.load(f)
-        else:
-            chat_history = []
-            
-        # Add new message
-        chat_history.append(f"{sender}: {message}")
-        
-        # Keep only last 20 messages
-        chat_history = chat_history[-20:]
-        
-        # Save back to file
-        with open(chat_file, 'w') as f:
-            json.dump(chat_history, f)
-            
-        # Push to GitHub
-        push_to_github(str(chat_file))
-            
-    except Exception as e:
-        logger.error(f"Error updating user memory for {user_id}: {str(e)}")
-
-def get_conversation_history(user_id):
-    """Get user's conversation history"""
-    chat_file = get_user_chat_file(user_id)
-    
-    if not chat_file.exists():
-        return ""
-        
-    try:
-        with open(chat_file, 'r') as f:
-            chat_history = json.load(f)
-        return "\n".join(chat_history)
-    except Exception as e:
-        logger.error(f"Error reading chat history for {user_id}: {str(e)}")
-        return ""
-
-def push_to_github(file_path):
-    """Push file changes to GitHub"""
-    try:
-        repo = github.get_repo(GITHUB_REPO_NAME)
-        with open(file_path, 'r') as f:
-            content = f.read()
-        
-        try:
-            # Try to get existing file to update it
-            file_in_repo = repo.get_contents(file_path)
-            repo.update_file(
-                path=file_path,
-                message=f"Update {file_path}",
-                content=content,
-                sha=file_in_repo.sha
-            )
-        except Exception:
-            # File doesn't exist, create it
-            repo.create_file(
-                path=file_path,
-                message=f"Create {file_path}",
-                content=content,
-                branch="main"
-            )
-            
-    except Exception as e:
-        logger.error(f"Failed to push {file_path} to GitHub: {str(e)}")
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -197,6 +191,14 @@ def webhook():
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
+                    # Initialize user info if first message
+                    if not Path(f"users/{sender_id}/user_info.json").exists():
+                        update_user_info(sender_id, {
+                            "user_id": sender_id,
+                            "first_message": message_text if message_text else "[image attachment]",
+                            "first_seen": datetime.datetime.now().isoformat()
+                        })
+                    
                     is_thumbs_up = False
                     if message_attachments:
                         for attachment in message_attachments:
@@ -227,7 +229,7 @@ def webhook():
                                     )
                                     send_message(sender_id, response)
                                     if matched_product:
-                                        update_user_memory(sender_id, response, sender='AI')
+                                        update_user_memory(sender_id, response)
                                     image_processed = True
                     
                     if message_text and not image_processed:
@@ -244,14 +246,14 @@ def webhook():
                                     product_text = response.split(" - ")[0]
                                     if product_text:
                                         send_message(sender_id, product_text)
-                                        update_user_memory(sender_id, product_text, sender='AI')
+                                        update_user_memory(sender_id, product_text)
                             except Exception as e:
                                 logger.error(f"Error processing image URL: {str(e)}")
                                 send_message(sender_id, response)
-                                update_user_memory(sender_id, response, sender='AI')
+                                update_user_memory(sender_id, response)
                         else:
                             send_message(sender_id, response)
-                            update_user_memory(sender_id, response, sender='AI')
+                            update_user_memory(sender_id, response)
                     elif not image_processed:
                         send_message(sender_id, "👍")
 
