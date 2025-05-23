@@ -139,26 +139,10 @@ def webhook():
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
-                    is_thumbs_up = False
-                    if message_attachments:
-                        for attachment in message_attachments:
-                            if attachment.get("type") == "image":
-                                payload = attachment.get("payload", {})
-                                sticker_id = payload.get("sticker_id")
-                                image_url = payload.get("url", "")
-                                
-                                if (sticker_id == "369239263222822"
-                                    is_thumbs_up = True
-                                    send_message(sender_id, "👍")
-                                    continue
-
-                    if is_thumbs_up:
-                        continue
-
                     image_processed = False
                     if message_attachments:
                         for attachment in message_attachments:
-                            if attachment.get("type") == "image" and not is_thumbs_up:
+                            if attachment.get("type") == "image":
                                 image_url = attachment["payload"].get("url")
                                 if image_url:
                                     update_user_memory(sender_id, "[User sent an image]")
