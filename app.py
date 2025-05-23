@@ -139,57 +139,27 @@ def webhook():
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
-                    # Improved sticker detection
-                    is_sticker = False
+                    is_thumbs_up = False
                     if message_attachments:
                         for attachment in message_attachments:
                             if attachment.get("type") == "image":
                                 payload = attachment.get("payload", {})
-                                sticker_id = payload.get("sticker_id")
-                                image_url = payload.get("url", "")
-                                
-                                # Check for known sticker IDs and patterns
-                                known_sticker_ids = [
-                                    "369239263222822",  # Thumbs up
-                                    "369239343222814",  # Thumbs down
-                                    "369239383222810"   # Heart
-                                ]
-                                
-                                # Check for sticker patterns in URL
-                                is_sticker_url = any(
-                                    pattern in image_url for pattern in [
-                                        "sticker_id=",
-                                        "sticker-pack-id=",
-                                        "stickers/",
-                                        "sticker_",
-                                        "_sticker",
-                                        "stickers_"
-                                    ]
-                                )
-                                
-                                if (sticker_id in known_sticker_ids or 
-                                    is_sticker_url or
-                                    any(f"{id}_" in image_url for id in known_sticker_ids)):
-                                    is_sticker = True
-                                    # Handle different sticker types
-                                    if sticker_id == "369239263222822":
-                                        send_message(sender_id, "👍 Thanks for the thumbs up!")
-                                    elif sticker_id == "369239343222814":
-                                        send_message(sender_id, "👎 Sorry to hear that")
-                                    elif sticker_id == "369239383222810":
-                                        send_message(sender_id, "❤️ Thank you for the love!")
-                                    else:
-                                        send_message(sender_id, "😊")
-                                    break
+                                # More specific thumbs-up detection
+                                if (payload.get("sticker_id") == "369239263222822" or  # Standard thumbs-up sticker ID
+                                    "thumbs_up" in (payload.get("url", "") + payload.get("preview_url", "")).lower() or
+                                    "like.png" in payload.get("url", "").lower() or
+                                    "fb_like" in payload.get("url", "").lower()):
+                                    is_thumbs_up = True
+                                    send_message(sender_id, "👍")
+                                    continue
 
-                    if is_sticker:
+                    if is_thumbs_up:
                         continue
 
-                    # Process regular images
                     image_processed = False
                     if message_attachments:
                         for attachment in message_attachments:
-                            if attachment.get("type") == "image" and not is_sticker:
+                            if attachment.get("type") == "image" and not is_thumbs_up:
                                 image_url = attachment["payload"].get("url")
                                 if image_url:
                                     update_user_memory(sender_id, "[User sent an image]")
@@ -202,7 +172,6 @@ def webhook():
                                         update_user_memory(sender_id, response)
                                     image_processed = True
                     
-                    # Rest of your message processing logic...
                     if message_text and not image_processed:
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
