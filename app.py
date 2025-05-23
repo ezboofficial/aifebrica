@@ -147,8 +147,7 @@ def webhook():
                                 sticker_id = payload.get("sticker_id")
                                 image_url = payload.get("url", "")
                                 
-                                if (sticker_id == "369239263222822" or 
-                                    "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
+                                if (sticker_id == "369239263222822"
                                     is_thumbs_up = True
                                     send_message(sender_id, "👍")
                                     continue
