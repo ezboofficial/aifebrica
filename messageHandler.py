@@ -521,7 +521,7 @@ def handle_text_message(user_message, last_message):
                     # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
-                    return "No Match Found!!<br> - I couldn’t find anything matching in our catalog.<br>- To help me assist you, please follow these steps:<br>1. Visit our Facebook page.<br>2. Download an image of the product you need.<br>3. Send it to me directly.<br>- You can also describe what you're looking for — I can then show you your needed product with an image.", None
+                    return "No Match Found\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n   1. Visit our Facebook page.\n   2. Download an image of the product you need.\n   3. Send it to me directly.\n\n- You can also describe what you're looking for — I can then show you your needed product with an image.", None
 
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
