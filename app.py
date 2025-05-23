@@ -144,11 +144,13 @@ def webhook():
                         for attachment in message_attachments:
                             if attachment.get("type") == "image":
                                 payload = attachment.get("payload", {})
-                                # More specific thumbs-up detection
+                                # Enhanced thumbs-up detection
                                 if (payload.get("sticker_id") == "369239263222822" or  # Standard thumbs-up sticker ID
-                                    "thumbs_up" in (payload.get("url", "") + payload.get("preview_url", "")).lower() or
-                                    "like.png" in payload.get("url", "").lower() or
-                                    "fb_like" in payload.get("url", "").lower()):
+                                    "thumbs up sign" in payload.get("title", "").lower() or  # From inspect element
+                                    any(tag in payload.get("url", "").lower() 
+                                    for tag in ["thumbs_up", "like.png", "fb_like", "thumbsup"]) or
+                                    any(prop.get("d", "") == "M3.3,6H0.7C0.3,6,0,6.3,0,6.7v8.5C0,15.7,0.3,16,0.7,16h2.5C3.7,16,4,15.7,4,15.3V6.7C4,6.3,3.7,6,3.3,6z"
+                                    for prop in payload.get("metadata", {}).get("elements", []))):
                                     is_thumbs_up = True
                                     send_message(sender_id, "👍")
                                     continue
