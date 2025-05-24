@@ -109,7 +109,7 @@ def remove_product(index):
 
 # Orders List
 orders = [
-    {'name': 'Suleiman', 'mobile': '08088941798', 'address': 'Adebayo ado ekiti', 'product': 'Dress Shoes (40, Red)', 'price': 950, 'payment_method': 'COD', 'total': 950, 'delivery_charge': 0, 'subtotal': 950, 'status': 'Preparing', 'date': '2025-05-21'}
+
 ]
 
 # Sales Logs List
