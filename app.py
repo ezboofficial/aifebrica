@@ -16,6 +16,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import send_from_directory
 import datetime
+import tempfile
+import shutil
+import uuid
+import json
 
 load_dotenv()
 
@@ -409,22 +413,9 @@ def view_order(order_index):
     
     return render_template('vieworder.html', title="View Order", order=order, order_index=order_index, settings=messageHandler.get_settings())
 
-@app.route('/saleslogs', methods=['GET', 'POST'])
+@app.route('/saleslogs')
 @login_required
 def sales_logs():
-    if request.method == 'POST':
-        if request.form.get('action') == 'download_all':
-            import json
-            from io import StringIO
-            output = StringIO()
-            json.dump(messageHandler.sales_logs, output, indent=4)
-            output.seek(0)
-            return Response(
-                output,
-                mimetype="application/json",
-                headers={"Content-Disposition": "attachment;filename=sales_logs.json"}
-            )
-
     categories = set()
     for log in messageHandler.sales_logs:
         product = log['product']
@@ -440,6 +431,65 @@ def sales_logs():
             categories.add('Accessory')
 
     return render_template('saleslogs.html', title="Sales Logs", sales_logs=messageHandler.sales_logs, settings=messageHandler.get_settings(), categories=categories)
+
+@app.route('/download/saleslog')
+@login_required
+def download_saleslog():
+    try:
+        # Create a temporary directory
+        temp_dir = tempfile.mkdtemp()
+        filename = f"sales_log_{uuid.uuid4().hex}.json"
+        filepath = os.path.join(temp_dir, filename)
+        
+        # Write the sales logs to the file
+        with open(filepath, 'w') as f:
+            json.dump(messageHandler.sales_logs, f, indent=4)
+        
+        # Send the file and schedule cleanup
+        response = send_from_directory(
+            temp_dir,
+            filename,
+            as_attachment=True,
+            mimetype='application/json'
+        )
+        
+        # Clean up the temporary directory after sending
+        response.call_on_close(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error generating sales log download: {str(e)}")
+        flash("Error generating download file", "error")
+        return redirect(url_for('sales_logs'))
+
+@app.route('/download/saleslog/<int:order_index>')
+@login_required
+def download_single_order(order_index):
+    try:
+        if order_index < 0 or order_index >= len(messageHandler.sales_logs):
+            flash("Invalid order index", "error")
+            return redirect(url_for('sales_logs'))
+            
+        temp_dir = tempfile.mkdtemp()
+        filename = f"order_{order_index}_{uuid.uuid4().hex}.json"
+        filepath = os.path.join(temp_dir, filename)
+        
+        with open(filepath, 'w') as f:
+            json.dump(messageHandler.sales_logs[order_index], f, indent=4)
+            
+        response = send_from_directory(
+            temp_dir,
+            filename,
+            as_attachment=True,
+            mimetype='application/json'
+        )
+        
+        response.call_on_close(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
+        return response
+    except Exception as e:
+        logger.error(f"Error generating single order download: {str(e)}")
+        flash("Error generating download file", "error")
+        return redirect(url_for('sales_logs'))
 
 @app.route('/analyzeai')
 @login_required
