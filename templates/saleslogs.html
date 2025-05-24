@@ -353,25 +353,11 @@
             }
 
             function downloadOrder(index) {
-                const order = {{ sales_logs | tojson | safe }}[index];
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(order, null, 4));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", `order_${index}.json`);
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
+                window.location.href = `/download/saleslog/${index}`;
             }
 
             function downloadAll() {
-                const salesLogs = {{ sales_logs | tojson | safe }};
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(salesLogs, null, 4));
-                const downloadAnchorNode = document.createElement('a');
-                downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", "sales_logs.json");
-                document.body.appendChild(downloadAnchorNode);
-                downloadAnchorNode.click();
-                downloadAnchorNode.remove();
+                window.location.href = '/download/saleslog';
             }
 
             function triggerSearch() {
