@@ -438,19 +438,32 @@ def download_saleslog():
     try:
         # Create a temporary directory
         temp_dir = tempfile.mkdtemp()
-        filename = f"sales_log_{uuid.uuid4().hex}.json"
+        filename = f"sales_log_{uuid.uuid4().hex}.txt"
         filepath = os.path.join(temp_dir, filename)
         
-        # Write the sales logs to the file
+        # Write the sales logs to the file in TXT format
         with open(filepath, 'w') as f:
-            json.dump(messageHandler.sales_logs, f, indent=4)
+            for log in messageHandler.sales_logs:
+                f.write(f"Name: {log.get('name', 'N/A')}\n")
+                f.write(f"Mobile: {log.get('mobile', 'N/A')}\n")
+                f.write(f"Address: {log.get('address', 'N/A')}\n")
+                f.write(f"Product: {log.get('product', 'N/A')}\n")
+                f.write(f"Price: {log.get('price', 'N/A')}{messageHandler.get_settings().get('currency', '')}\n")
+                f.write(f"Delivery Charge: {log.get('delivery_charge', 'N/A')}{messageHandler.get_settings().get('currency', '')}\n")
+                f.write(f"Total: {log.get('total', 'N/A')}{messageHandler.get_settings().get('currency', '')}\n")
+                f.write(f"Payment Method: {log.get('payment_method', 'N/A')}\n")
+                if log.get('transaction_id'):
+                    f.write(f"Transaction ID: {log.get('transaction_id', 'N/A')}\n")
+                f.write(f"Status: {log.get('status', 'N/A')}\n")
+                f.write(f"Date: {log.get('date', 'N/A')}\n")
+                f.write("\n" + "="*50 + "\n\n")
         
         # Send the file and schedule cleanup
         response = send_from_directory(
             temp_dir,
             filename,
             as_attachment=True,
-            mimetype='application/json'
+            mimetype='text/plain'
         )
         
         # Clean up the temporary directory after sending
@@ -471,17 +484,29 @@ def download_single_order(order_index):
             return redirect(url_for('sales_logs'))
             
         temp_dir = tempfile.mkdtemp()
-        filename = f"order_{order_index}_{uuid.uuid4().hex}.json"
+        filename = f"order_{order_index}_{uuid.uuid4().hex}.txt"
         filepath = os.path.join(temp_dir, filename)
         
+        log = messageHandler.sales_logs[order_index]
         with open(filepath, 'w') as f:
-            json.dump(messageHandler.sales_logs[order_index], f, indent=4)
+            f.write(f"Name: {log.get('name', 'N/A')}\n")
+            f.write(f"Mobile: {log.get('mobile', 'N/A')}\n")
+            f.write(f"Address: {log.get('address', 'N/A')}\n")
+            f.write(f"Product: {log.get('product', 'N/A')}\n")
+            f.write(f"Price: {log.get('price', 'N/A')}{messageHandler.get_settings().get('currency', '')}\n")
+            f.write(f"Delivery Charge: {log.get('delivery_charge', 'N/A')}{messageHandler.get_settings().get('currency', '')}\n")
+            f.write(f"Total: {log.get('total', 'N/A')}{messageHandler.get_settings().get('currency', '')}\n")
+            f.write(f"Payment Method: {log.get('payment_method', 'N/A')}\n")
+            if log.get('transaction_id'):
+                f.write(f"Transaction ID: {log.get('transaction_id', 'N/A')}\n")
+            f.write(f"Status: {log.get('status', 'N/A')}\n")
+            f.write(f"Date: {log.get('date', 'N/A')}\n")
             
         response = send_from_directory(
             temp_dir,
             filename,
             as_attachment=True,
-            mimetype='application/json'
+            mimetype='text/plain'
         )
         
         response.call_on_close(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
