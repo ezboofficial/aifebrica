@@ -1,1 +1,1 @@
-
+{'name': 'Alamin', 'mobile': '01798663929', 'address': 'Natayongonj bazar, Narayongonj', 'product': 'Dress Shoes (40, Orange)', 'price': 950, 'payment_method': 'COD', 'total': 1050, 'delivery_charge': 100, 'subtotal': 950, 'status': 'Delivered', 'date': '2025-05-24'}
