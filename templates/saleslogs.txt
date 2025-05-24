@@ -1,1 +1,2 @@
 {'name': 'Alamin', 'mobile': '01798663929', 'address': 'Natayongonj bazar, Narayongonj', 'product': 'Dress Shoes (40, Orange)', 'price': 950, 'payment_method': 'COD', 'total': 1050, 'delivery_charge': 100, 'subtotal': 950, 'status': 'Delivered', 'date': '2025-05-24'}
+{'name': 'Suleiman', 'mobile': '08088941798', 'address': 'Adebayo ado ekiti', 'product': 'Dress Shoes (40, Red)', 'price': 950, 'payment_method': 'COD', 'total': 950, 'delivery_charge': 0, 'subtotal': 950, 'status': 'Canceled', 'date': '2025-05-24'}
