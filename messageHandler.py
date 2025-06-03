@@ -115,7 +115,7 @@ orders = [
     {'name': 'Suleiman', 'mobile': '08088941798', 'address': 'Adebayo ado ekiti', 'product': 'Dress Shoes (40, Red)', 'price': 950, 'payment_method': 'COD', 'total': 950, 'delivery_charge': 0, 'subtotal': 950, 'status': 'Preparing', 'date': '2025-05-21'},
     {'name': 'Abdur Rahman', 'mobile': '01609806189', 'address': 'Dhaka, Mirpur 12', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Shipping', 'date': '2025-05-28'},
     {'name': 'Sazid', 'mobile': '017098528176', 'address': 'Dhaka, Mirpur 7', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-05-31'},
-    {'name': 'Abdur Rahman', 'mobile': '017098054755', 'address': 'Dhaka Mirpur 8', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-03'}
+    {'name': 'Abdur Rahman', 'mobile': '017098054755', 'address': 'Dhaka Mirpur 8', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Shipping', 'date': '2025-06-03'}
 ]
 
 # Sales Logs List
