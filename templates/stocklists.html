@@ -309,7 +309,7 @@
             }
         }
 
-        /* Popup Styles - Modified to ensure proper scrolling */
+        /* Popup Styles - Modified to ensure proper scrolling and fixed buttons */
         .popup {
             position: fixed;
             top: 50%;
@@ -323,13 +323,13 @@
             width: 90%;
             max-width: 400px;
             max-height: 80vh; /* Set maximum height */
-            overflow-y: auto; /* Enable vertical scrolling */
             display: none;
             animation: popupFadeIn 0.3s ease-in-out;
+            flex-direction: column;
         }
 
         .popup.active {
-            display: block;
+            display: flex;
         }
 
         .popup h3 {
@@ -357,6 +357,21 @@
             margin-bottom: 15px;
             appearance: none; /* Remove default browser styling */
             background-image: none; /* Removed dropdown icon */
+        }
+
+        .popup .form-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px; /* Add space for scrollbar */
+            margin-bottom: 15px;
+        }
+
+        .popup .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding-top: 15px;
+            border-top: 1px solid #333;
         }
 
         .popup button {
@@ -647,65 +662,71 @@
     <!-- Add Product Popup -->
     <div class="popup" id="addProductPopup">
         <h3>Add New Product</h3>
-        <form id="addProductForm" onsubmit="return addProduct(event)">
-            <label for="category">Category:</label>
-            <input type="text" id="category" name="category" required>
-            
-            <label for="type">Type:</label>
-            <input type="text" id="type" name="type" required>
-            
-            <label for="size">Size (comma separated):</label>
-            <input type="text" id="size" name="size" required>
-            
-            <label for="color">Color (comma separated):</label>
-            <input type="text" id="color" name="color" required>
-            
-            <label for="image">Image URL:</label>
-            <div class="image-upload-container">
-                <input type="text" id="image" name="image" required readonly>
-                <button type="button" class="upload-btn" id="imageUploadBtn" onclick="handleImageAction('image')">Upload</button>
-                <input type="file" id="imageUpload" accept="image/*">
-            </div>
-            
-            <label for="price">Price:</label>
-            <input type="number" id="price" name="price" required>
-            
-            <button type="submit">Add Product</button>
+        <div class="form-content">
+            <form id="addProductForm">
+                <label for="category">Category:</label>
+                <input type="text" id="category" name="category" required>
+                
+                <label for="type">Type:</label>
+                <input type="text" id="type" name="type" required>
+                
+                <label for="size">Size (comma separated):</label>
+                <input type="text" id="size" name="size" required>
+                
+                <label for="color">Color (comma separated):</label>
+                <input type="text" id="color" name="color" required>
+                
+                <label for="image">Image URL:</label>
+                <div class="image-upload-container">
+                    <input type="text" id="image" name="image" required readonly>
+                    <button type="button" class="upload-btn" id="imageUploadBtn" onclick="handleImageAction('image')">Upload</button>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+                
+                <label for="price">Price:</label>
+                <input type="number" id="price" name="price" required>
+            </form>
+        </div>
+        <div class="form-actions">
             <button type="button" onclick="hideAddProductPopup()">Cancel</button>
-        </form>
+            <button type="button" onclick="addProduct()">Add Product</button>
+        </div>
     </div>
 
     <!-- Edit Product Popup -->
     <div class="popup" id="editProductPopup">
         <h3>Edit Product</h3>
-        <form id="editProductForm" onsubmit="return updateProduct(event)">
-            <input type="hidden" id="editProductIndex" name="product_index">
-            
-            <label for="editCategory">Category:</label>
-            <input type="text" id="editCategory" name="category" required>
-            
-            <label for="editType">Type:</label>
-            <input type="text" id="editType" name="type" required>
-            
-            <label for="editSize">Size (comma separated):</label>
-            <input type="text" id="editSize" name="size" required>
-            
-            <label for="editColor">Color (comma separated):</label>
-            <input type="text" id="editColor" name="color" required>
-            
-            <label for="editImage">Image URL:</label>
-            <div class="image-upload-container">
-                <input type="text" id="editImage" name="image" required readonly>
-                <button type="button" class="upload-btn" id="editImageUploadBtn" onclick="handleImageAction('editImage')">Upload</button>
-                <input type="file" id="editImageUpload" accept="image/*">
-            </div>
-            
-            <label for="editPrice">Price:</label>
-            <input type="number" id="editPrice" name="price" required>
-            
-            <button type="submit">Update Product</button>
+        <div class="form-content">
+            <form id="editProductForm">
+                <input type="hidden" id="editProductIndex" name="product_index">
+                
+                <label for="editCategory">Category:</label>
+                <input type="text" id="editCategory" name="category" required>
+                
+                <label for="editType">Type:</label>
+                <input type="text" id="editType" name="type" required>
+                
+                <label for="editSize">Size (comma separated):</label>
+                <input type="text" id="editSize" name="size" required>
+                
+                <label for="editColor">Color (comma separated):</label>
+                <input type="text" id="editColor" name="color" required>
+                
+                <label for="editImage">Image URL:</label>
+                <div class="image-upload-container">
+                    <input type="text" id="editImage" name="image" required readonly>
+                    <button type="button" class="upload-btn" id="editImageUploadBtn" onclick="handleImageAction('editImage')">Upload</button>
+                    <input type="file" id="editImageUpload" accept="image/*">
+                </div>
+                
+                <label for="editPrice">Price:</label>
+                <input type="number" id="editPrice" name="price" required>
+            </form>
+        </div>
+        <div class="form-actions">
             <button type="button" onclick="hideEditProductPopup()">Cancel</button>
-        </form>
+            <button type="button" onclick="updateProduct()">Update Product</button>
+        </div>
     </div>
 
     <!-- Confirmation Popup for Remove -->
@@ -960,11 +981,18 @@
         }
 
         // Add Product
-        function addProduct(event) {
-            event.preventDefault();
-            showToast("Product added successfully!", "success");
+        function addProduct() {
             const form = document.getElementById('addProductForm');
             const formData = new FormData(form);
+            
+            // Validate required fields
+            if (!formData.get('category') || !formData.get('type') || !formData.get('size') || 
+                !formData.get('color') || !formData.get('image') || !formData.get('price')) {
+                showToast("Please fill all required fields", "error");
+                return;
+            }
+
+            showToast("Product added successfully!", "success");
             const data = {
                 action: 'add',
                 category: formData.get('category'),
@@ -989,11 +1017,18 @@
         }
 
         // Update Product
-        function updateProduct(event) {
-            event.preventDefault();
-            showToast("Product updated successfully!", "success");
+        function updateProduct() {
             const form = document.getElementById('editProductForm');
             const formData = new FormData(form);
+            
+            // Validate required fields
+            if (!formData.get('category') || !formData.get('type') || !formData.get('size') || 
+                !formData.get('color') || !formData.get('image') || !formData.get('price')) {
+                showToast("Please fill all required fields", "error");
+                return;
+            }
+
+            showToast("Product updated successfully!", "success");
             const data = {
                 action: 'edit',
                 product_index: formData.get('product_index'),
