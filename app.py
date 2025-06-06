@@ -239,30 +239,29 @@ def instagram_webhook():
 
     try:
         for entry in data.get('entry', []):
-            for change in entry.get('changes', []):
-                if change.get('field') == 'messages':
-                    messaging_event = change.get('value', {})
+            for messaging_event in entry.get('messaging', []):
+                sender_id = messaging_event['sender']['id']
+                
+                if 'message' in messaging_event:
+                    message = messaging_event['message']
                     
-                    # Skip if not a message
-                    if not messaging_event.get('messages'):
-                        continue
-                        
-                    sender_id = messaging_event['from']['id']
-                    message = messaging_event['messages'][0]  # Get first message
-                    
-                    if message.get('text'):
+                    if 'text' in message:
                         message_text = message['text']
+                        logger.info(f"Processing Instagram message from {sender_id}: {message_text}")
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
                         response, _ = messageHandler.handle_text_message(full_message, message_text)
+                        
+                        # Send response back to Instagram
                         send_instagram_message(sender_id, response)
                         update_user_memory(sender_id, response)
                     
-                    elif message.get('attachments'):
+                    elif 'attachments' in message:
                         for attachment in message['attachments']:
                             if attachment['type'] == 'image':
                                 image_url = attachment['payload']['url']
+                                logger.info(f"Processing Instagram image from {sender_id}")
                                 update_user_memory(sender_id, "[User sent an image]")
                                 response, matched_product = messageHandler.handle_text_message(
                                     f"image_url: {image_url}", 
@@ -277,87 +276,29 @@ def instagram_webhook():
 
     return "EVENT_RECEIVED", 200
 
-# Messenger Functions
-def send_message(recipient_id, message=None):
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    
-    if not isinstance(message, str):
-        message = str(message) if message else "An error occurred while processing your request."
-    
-    data = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": message},
-    }
-
-    try:
-        response = requests.post(
-            "https://graph.facebook.com/v21.0/me/messages",
-            params=params,
-            headers=headers,
-            json=data
-        )
-        if response.status_code == 200:
-            logger.info(f"Message sent to {recipient_id}")
-        else:
-            logger.error(f"Failed to send message: {response.text}")
-    except Exception as e:
-        logger.error(f"Error sending message: {str(e)}")
-
-def send_image(recipient_id, image_url):
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    
-    data = {
-        "recipient": {"id": recipient_id},
-        "message": {
-            "attachment": {
-                "type": "image",
-                "payload": {
-                    "url": image_url,
-                    "is_reusable": True
-                }
-            }
-        }
-    }
-
-    try:
-        response = requests.post(
-            "https://graph.facebook.com/v21.0/me/messages",
-            params=params,
-            headers=headers,
-            json=data
-        )
-        if response.status_code == 200:
-            logger.info(f"Image sent to {recipient_id}")
-        else:
-            logger.error(f"Failed to send image: {response.text}")
-    except Exception as e:
-        logger.error(f"Error sending image: {str(e)}")
-
-# Instagram Functions
 def send_instagram_message(recipient_id, message):
-    params = {
-        "access_token": INSTAGRAM_ACCESS_TOKEN,
+    """Send message to Instagram user directly"""
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {INSTAGRAM_ACCESS_TOKEN}"
+    }
+    
+    payload = {
         "recipient": {"id": recipient_id},
         "message": {"text": message}
     }
-    headers = {"Content-Type": "application/json"}
     
     try:
         response = requests.post(
             "https://graph.facebook.com/v18.0/me/messages",
-            params={"access_token": INSTAGRAM_ACCESS_TOKEN},
             headers=headers,
-            json={
-                "recipient": {"id": recipient_id},
-                "message": {"text": message}
-            }
+            json=payload
         )
+        
         if response.status_code == 200:
             logger.info(f"Instagram message sent to {recipient_id}")
         else:
-            logger.error(f"Failed to send Instagram message: {response.text}")
+            logger.error(f"Failed to send Instagram message. Status: {response.status_code}, Response: {response.text}")
     except Exception as e:
         logger.error(f"Error sending Instagram message: {str(e)}")
 
