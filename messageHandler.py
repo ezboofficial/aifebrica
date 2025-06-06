@@ -551,3 +551,77 @@ def handle_text_message(user_message, last_message):
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
         return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+
+
+def send_message(recipient_id, message=None, platform="facebook"):
+    if platform == "facebook":
+        access_token = os.getenv("PAGE_ACCESS_TOKEN")
+    elif platform == "instagram":
+        access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+    else:
+        logger.error(f"Unsupported platform: {platform}")
+        return
+
+    params = {"access_token": access_token}
+    headers = {"Content-Type": "application/json"}
+    
+    if not isinstance(message, str):
+        message = str(message) if message else "An error occurred while processing your request."
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message},
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Message sent to {recipient_id} on {platform}")
+        else:
+            logger.error(f"Failed to send message on {platform}: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending message on {platform}: {str(e)}")
+
+def send_image(recipient_id, image_url, platform="facebook"):
+    if platform == "facebook":
+        access_token = os.getenv("PAGE_ACCESS_TOKEN")
+    elif platform == "instagram":
+        access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+    else:
+        logger.error(f"Unsupported platform: {platform}")
+        return
+
+    params = {"access_token": access_token}
+    headers = {"Content-Type": "application/json"}
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url,
+                    "is_reusable": True
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Image sent to {recipient_id} on {platform}")
+        else:
+            logger.error(f"Failed to send image on {platform}: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending image on {platform}: {str(e)}")
