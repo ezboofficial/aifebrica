@@ -20,15 +20,6 @@ import tempfile
 import shutil
 import uuid
 import json
-from instagrapi import Client
-from instagrapi.exceptions import (
-    ClientError,
-    ClientLoginRequired,
-    ChallengeRequired,
-    ChallengeUnknownStep,
-    ChallengeSelfieCaptcha,
-    ChallengeRecaptcha
-)
 
 load_dotenv()
 
@@ -48,8 +39,6 @@ GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 
 # Instagram Configuration
-INSTAGRAM_USERNAME = os.getenv("INSTAGRAM_USERNAME")
-INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD")
 INSTAGRAM_BUSINESS_ID = os.getenv("INSTAGRAM_BUSINESS_ID")
 INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 
@@ -60,14 +49,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 # Initialize GitHub
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
-
-# Initialize Instagram Client
-instagram_client = Client()
-try:
-    instagram_client.login(INSTAGRAM_USERNAME, INSTAGRAM_PASSWORD)
-    logger.info("Instagram client initialized successfully")
-except Exception as e:
-    logger.error(f"Instagram login failed: {str(e)}")
 
 user_memory = {}
 AI_ENABLED = True
@@ -340,15 +321,17 @@ def send_image(recipient_id, image_url):
 
 def send_instagram_message(recipient_id, message):
     try:
-        params = {
-            "access_token": INSTAGRAM_ACCESS_TOKEN,
+        data = {
             "recipient": {"id": recipient_id},
             "message": {"text": message}
         }
         
+        params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
+        
         response = requests.post(
             f"https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ID}/messages",
-            json=params
+            params=params,
+            json=data
         )
         
         if response.status_code == 200:
@@ -360,8 +343,7 @@ def send_instagram_message(recipient_id, message):
 
 def send_instagram_image(recipient_id, image_url):
     try:
-        params = {
-            "access_token": INSTAGRAM_ACCESS_TOKEN,
+        data = {
             "recipient": {"id": recipient_id},
             "message": {
                 "attachment": {
@@ -374,9 +356,12 @@ def send_instagram_image(recipient_id, image_url):
             }
         }
         
+        params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
+        
         response = requests.post(
             f"https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ID}/messages",
-            json=params
+            params=params,
+            json=data
         )
         
         if response.status_code == 200:
