@@ -32,8 +32,6 @@ logger = logging.getLogger()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
-INSTAGRAM_VERIFY_TOKEN = os.getenv("INSTAGRAM_VERIFY_TOKEN")
-INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
@@ -118,7 +116,7 @@ def toggle_ai():
     AI_ENABLED = not AI_ENABLED
     return jsonify({'status': 'success', 'ai_enabled': AI_ENABLED})
 
-@app.route("/webhook", methods=["GET"])
+@app.route('/webhook', methods=['GET'])
 def verify():
     token_sent = request.args.get("hub.verify_token")
     if token_sent == VERIFY_TOKEN:
@@ -126,21 +124,6 @@ def verify():
         return request.args.get("hub.challenge", "")
     logger.error("Webhook verification failed: invalid verify token.")
     return "Verification failed", 403
-
-@app.route("/instagram_webhook", methods=["POST"])
-def instagram_webhook():
-    global AI_ENABLED
-    if not AI_ENABLED:
-        logger.info("AI is currently disabled - ignoring message")
-        return "EVENT_RECEIVED", 200
-        
-    data = request.get_json()
-    logger.info("Received Instagram data: %s", data)
-
-    if data.get("object") == "instagram":
-        handle_instagram_message(data)
-
-    return "EVENT_RECEIVED", 200
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -153,146 +136,75 @@ def webhook():
     logger.info("Received data: %s", data)
 
     if data.get("object") == "page":
-        handle_facebook_message(data)
-    elif data.get("object") == "instagram":
-        handle_instagram_message(data)
+        for entry in data["entry"]:
+            for event in entry.get("messaging", []):
+                if "message" in event:
+                    sender_id = event["sender"]["id"]
+                    message_text = event["message"].get("text")
+                    message_attachments = event["message"].get("attachments")
+                    
+                    is_thumbs_up = False
+                    if message_attachments:
+                        for attachment in message_attachments:
+                            if attachment.get("type") == "image":
+                                payload = attachment.get("payload", {})
+                                sticker_id = payload.get("sticker_id")
+                                image_url = payload.get("url", "")
+                                
+                                if (sticker_id == "369239263222822" or 
+                                    "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
+                                    is_thumbs_up = True
+                                    send_message(sender_id, "👍")
+                                    continue
+
+                    if is_thumbs_up:
+                        continue
+
+                    image_processed = False
+                    if message_attachments:
+                        for attachment in message_attachments:
+                            if attachment.get("type") == "image" and not is_thumbs_up:
+                                image_url = attachment["payload"].get("url")
+                                if image_url:
+                                    update_user_memory(sender_id, "[User sent an image]")
+                                    response, matched_product = messageHandler.handle_text_message(
+                                        f"image_url: {image_url}", 
+                                        "[Image attachment]"
+                                    )
+                                    send_message(sender_id, response)
+                                    if matched_product:
+                                        update_user_memory(sender_id, response)
+                                    image_processed = True
+                    
+                    if message_text and not image_processed:
+                        update_user_memory(sender_id, message_text)
+                        conversation_history = get_conversation_history(sender_id)
+                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                        response, _ = messageHandler.handle_text_message(full_message, message_text)
+                        
+                        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+                            try:
+                                image_url = response.split(" - ")[-1].strip()
+                                if image_url.startswith(('http://', 'https://')):
+                                    send_image(sender_id, image_url)
+                                    product_text = response.split(" - ")[0]
+                                    if product_text:
+                                        send_message(sender_id, product_text)
+                                        update_user_memory(sender_id, product_text)
+                            except Exception as e:
+                                logger.error(f"Error processing image URL: {str(e)}")
+                                send_message(sender_id, response)
+                                update_user_memory(sender_id, response)
+                        else:
+                            send_message(sender_id, response)
+                            update_user_memory(sender_id, response)
+                    elif not image_processed:
+                        send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
-
-def handle_facebook_message(data):
-    for entry in data["entry"]:
-        for event in entry.get("messaging", []):
-            if "message" in event:
-                sender_id = event["sender"]["id"]
-                message_text = event["message"].get("text")
-                message_attachments = event["message"].get("attachments")
-                
-                is_thumbs_up = False
-                if message_attachments:
-                    for attachment in message_attachments:
-                        if attachment.get("type") == "image":
-                            payload = attachment.get("payload", {})
-                            sticker_id = payload.get("sticker_id")
-                            image_url = payload.get("url", "")
-                            
-                            if (sticker_id == "369239263222822" or 
-                                "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
-                                is_thumbs_up = True
-                                send_message(sender_id, "👍", platform="facebook")
-                                continue
-
-                if is_thumbs_up:
-                    continue
-
-                image_processed = False
-                if message_attachments:
-                    for attachment in message_attachments:
-                        if attachment.get("type") == "image" and not is_thumbs_up:
-                            image_url = attachment["payload"].get("url")
-                            if image_url:
-                                update_user_memory(sender_id, "[User sent an image]")
-                                response, matched_product = messageHandler.handle_text_message(
-                                    f"image_url: {image_url}", 
-                                    "[Image attachment]"
-                                )
-                                send_message(sender_id, response, platform="facebook")
-                                if matched_product:
-                                    update_user_memory(sender_id, response)
-                                image_processed = True
-                
-                if message_text and not image_processed:
-                    update_user_memory(sender_id, message_text)
-                    conversation_history = get_conversation_history(sender_id)
-                    full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-                    response, _ = messageHandler.handle_text_message(full_message, message_text)
-                    
-                    if " - http" in response and any(ext in response.lower() for ext in [".jpg", ".jpeg", ".png", ".gif"]):
-                        try:
-                            image_url = response.split(" - ")[-1].strip()
-                            if image_url.startswith(("http://", "https://")):
-                                send_image(sender_id, image_url, platform="facebook")
-                                product_text = response.split(" - ")[0]
-                                if product_text:
-                                    send_message(sender_id, product_text, platform="facebook")
-                                    update_user_memory(sender_id, product_text)
-                        except Exception as e:
-                            logger.error(f"Error processing image URL: {str(e)}")
-                            send_message(sender_id, response, platform="facebook")
-                            update_user_memory(sender_id, response)
-                    else:
-                        send_message(sender_id, response, platform="facebook")
-                        update_user_memory(sender_id, response)
-                elif not image_processed:
-                    send_message(sender_id, "👍", platform="facebook")
-
-def handle_instagram_message(data):
-    for entry in data["entry"]:
-        for messaging_event in entry.get("messaging", []):
-            if messaging_event.get("message"):
-                sender_id = messaging_event["sender"]["id"]
-                message_text = messaging_event["message"].get("text")
-                message_attachments = messaging_event["message"].get("attachments")
-
-                is_thumbs_up = False
-                if message_attachments:
-                    for attachment in message_attachments:
-                        if attachment.get("type") == "image":
-                            payload = attachment.get("payload", {})
-                            sticker_id = payload.get("sticker_id")
-                            image_url = payload.get("url", "")
-                            
-                            if (sticker_id == "369239263222822" or 
-                                "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
-                                is_thumbs_up = True
-                                send_instagram_message(sender_id, "👍")
-                                continue
-
-                if is_thumbs_up:
-                    continue
-
-                image_processed = False
-                if message_attachments:
-                    for attachment in message_attachments:
-                        if attachment.get("type") == "image" and not is_thumbs_up:
-                            image_url = attachment["payload"].get("url")
-                            if image_url:
-                                update_user_memory(sender_id, "[User sent an image]")
-                                response, matched_product = messageHandler.handle_text_message(
-                                    f"image_url: {image_url}", 
-                                    "[Image attachment]"
-                                )
-                                send_instagram_message(sender_id, response)
-                                if matched_product:
-                                    update_user_memory(sender_id, response)
-                                image_processed = True
-                
-                if message_text and not image_processed:
-                    update_user_memory(sender_id, message_text)
-                    conversation_history = get_conversation_history(sender_id)
-                    full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-                    response, _ = messageHandler.handle_text_message(full_message, message_text)
-                    
-                    if " - http" in response and any(ext in response.lower() for ext in [".jpg", ".jpeg", ".png", ".gif"]):
-                        try:
-                            image_url = response.split(" - ")[-1].strip()
-                            if image_url.startswith(("http://", "https://")):
-                                send_instagram_image(sender_id, image_url)
-                                product_text = response.split(" - ")[0]
-                                if product_text:
-                                    send_instagram_message(sender_id, product_text)
-                                    update_user_memory(sender_id, product_text)
-                        except Exception as e:
-                            logger.error(f"Error processing image URL: {str(e)}")
-                            send_instagram_message(sender_id, response)
-                            update_user_memory(sender_id, response)
-                    else:
-                        send_instagram_message(sender_id, response)
-                        update_user_memory(sender_id, response)
-                elif not image_processed:
-                    send_instagram_message(sender_id, "👍")
-
-def send_instagram_message(recipient_id, message=None):
-    params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
+    
+def send_message(recipient_id, message=None):
+    params = {"access_token": PAGE_ACCESS_TOKEN}
     headers = {"Content-Type": "application/json"}
     
     if not isinstance(message, str):
@@ -311,11 +223,42 @@ def send_instagram_message(recipient_id, message=None):
             json=data
         )
         if response.status_code == 200:
-            logger.info(f"Instagram message sent to {recipient_id}")
+            logger.info(f"Message sent to {recipient_id}")
         else:
-            logger.error(f"Failed to send Instagram message: {response.text}")
+            logger.error(f"Failed to send message: {response.text}")
     except Exception as e:
-        logger.error(f"Error sending Instagram message: {str(e)}")
+        logger.error(f"Error sending message: {str(e)}")
+
+def send_image(recipient_id, image_url):
+    params = {"access_token": PAGE_ACCESS_TOKEN}
+    headers = {"Content-Type": "application/json"}
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url,
+                    "is_reusable": True
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Image sent to {recipient_id}")
+        else:
+            logger.error(f"Failed to send image: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending image: {str(e)}")
 
 def update_github_repo(products):
     try:
@@ -1014,28 +957,3 @@ def send_order_notification(order):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
-
-
-@app.route("/instagram_webhook", methods=["GET"])
-def instagram_verify():
-    token_sent = request.args.get("hub.verify_token")
-    if token_sent == INSTAGRAM_VERIFY_TOKEN:
-        logger.info("Instagram Webhook verification successful.")
-        return request.args.get("hub.challenge", "")
-    logger.error("Instagram Webhook verification failed: invalid verify token.")
-    return "Verification failed", 403
-
-@app.route("/instagram_webhook", methods=["POST"])
-def instagram_webhook():
-    global AI_ENABLED
-    if not AI_ENABLED:
-        logger.info("AI is currently disabled - ignoring message")
-        return "EVENT_RECEIVED", 200
-        
-    data = request.get_json()
-    logger.info("Received Instagram data: %s", data)
-
-    if data.get("object") == "instagram":
-        handle_instagram_message(data)
-
-    return "EVENT_RECEIVED", 200
