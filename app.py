@@ -1,3 +1,4 @@
+python
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, Response, session
 import os
 import logging
@@ -32,10 +33,17 @@ logger = logging.getLogger()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
+INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+# Validate tokens at startup
+if not PAGE_ACCESS_TOKEN:
+    logger.error("Facebook PAGE_ACCESS_TOKEN not configured")
+if not INSTAGRAM_ACCESS_TOKEN:
+    logger.error("Instagram INSTAGRAM_ACCESS_TOKEN not configured")
 
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
@@ -116,6 +124,7 @@ def toggle_ai():
     AI_ENABLED = not AI_ENABLED
     return jsonify({'status': 'success', 'ai_enabled': AI_ENABLED})
 
+# Facebook Messenger Webhook
 @app.route('/webhook', methods=['GET'])
 def verify():
     token_sent = request.args.get("hub.verify_token")
@@ -133,7 +142,7 @@ def webhook():
         return "EVENT_RECEIVED", 200
         
     data = request.get_json()
-    logger.info("Received data: %s", data)
+    logger.info("Received Facebook data: %s", data)
 
     if data.get("object") == "page":
         for entry in data["entry"]:
@@ -202,7 +211,62 @@ def webhook():
                         send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
+
+# Instagram Webhook
+@app.route('/instagram-webhook', methods=['GET'])
+def verify_instagram():
+    hub_mode = request.args.get("hub.mode")
+    hub_challenge = request.args.get("hub.challenge")
+    hub_verify_token = request.args.get("hub.verify_token")
     
+    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+        logger.info("Instagram webhook verified successfully")
+        return hub_challenge, 200
+    logger.error("Instagram webhook verification failed")
+    return "Verification failed", 403
+
+@app.route('/instagram-webhook', methods=['POST'])
+def instagram_webhook():
+    global AI_ENABLED
+    if not AI_ENABLED:
+        logger.info("AI is currently disabled - ignoring Instagram message")
+        return "EVENT_RECEIVED", 200
+        
+    data = request.get_json()
+    logger.info("Received Instagram data: %s", data)
+
+    for entry in data.get('entry', []):
+        for messaging_event in entry.get('messaging', []):
+            sender_id = messaging_event['sender']['id']
+            
+            if 'message' in messaging_event:
+                message = messaging_event['message']
+                
+                if 'text' in message:
+                    message_text = message['text']
+                    update_user_memory(sender_id, message_text)
+                    conversation_history = get_conversation_history(sender_id)
+                    full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                    response, _ = messageHandler.handle_text_message(full_message, message_text)
+                    send_instagram_message(sender_id, response)
+                    update_user_memory(sender_id, response)
+                
+                elif 'attachments' in message:
+                    for attachment in message['attachments']:
+                        if attachment['type'] == 'image':
+                            image_url = attachment['payload']['url']
+                            update_user_memory(sender_id, "[User sent an image]")
+                            response, matched_product = messageHandler.handle_text_message(
+                                f"image_url: {image_url}", 
+                                "[Image attachment]"
+                            )
+                            send_instagram_message(sender_id, response)
+                            if matched_product:
+                                update_user_memory(sender_id, response)
+
+    return "EVENT_RECEIVED", 200
+
+# Messenger Functions
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
     headers = {"Content-Type": "application/json"}
@@ -228,6 +292,64 @@ def send_message(recipient_id, message=None):
             logger.error(f"Failed to send message: {response.text}")
     except Exception as e:
         logger.error(f"Error sending message: {str(e)}")
+
+def send_image(recipient_id, image_url):
+    params = {"access_token": PAGE_ACCESS_TOKEN}
+    headers = {"Content-Type": "application/json"}
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url,
+                    "is_reusable": True
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Image sent to {recipient_id}")
+        else:
+            logger.error(f"Failed to send image: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending image: {str(e)}")
+
+# Instagram Functions
+def send_instagram_message(recipient_id, message):
+    params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
+    headers = {"Content-Type": "application/json"}
+    
+    if not isinstance(message, str):
+        message = str(message) if message else "An error occurred while processing your request."
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message},
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Instagram message sent to {recipient_id}")
+        else:
+            logger.error(f"Failed to send Instagram message: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending Instagram message: {str(e)}")
 
 def send_image(recipient_id, image_url):
     params = {"access_token": PAGE_ACCESS_TOKEN}
