@@ -6,7 +6,7 @@ from messageHandler import handle_text_message
 from dotenv import load_dotenv
 import requests
 from io import BytesIO
-from collections import deque
+from app import update_user_memory, get_conversation_history
 
 # Load environment variables
 load_dotenv()
@@ -21,29 +21,22 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history (same as in app.py)
-user_memory = {}
-
-def update_user_memory(user_id, message):
-    if user_id not in user_memory:
-        user_memory[user_id] = deque(maxlen=20)
-    user_memory[user_id].append(message)
-
-def get_conversation_history(user_id):
-    return "\n".join(user_memory.get(user_id, []))
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send a message when the command /start is issued."""
+    user_id = str(update.message.from_user.id)
+    update_user_memory(user_id, "[User started conversation]")
     await update.message.reply_text('Hi! I am your shop assistant. How can I help you today?')
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send a message when the command /help is issued."""
+    user_id = str(update.message.from_user.id)
+    update_user_memory(user_id, "[User requested help]")
     await update.message.reply_text('I can help you with product inquiries and orders. Just send me a message!')
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming messages."""
     try:
-        user_id = update.message.from_user.id
+        user_id = str(update.message.from_user.id)
         message_text = update.message.text
         
         # Check for photo
@@ -53,7 +46,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             image_url = photo_file.file_path
             message_text = f"image_url: {image_url}"
             update_user_memory(user_id, "[User sent an image]")
-        else:
+        elif message_text:
             update_user_memory(user_id, message_text)
         
         # Get conversation history
@@ -63,8 +56,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Process the message through your existing handler
         response, _ = handle_text_message(full_message, message_text)
         
-        # Update memory with the response if it's not an image
-        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+        # Update memory with response if not an image
+        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             update_user_memory(user_id, response)
         
         # Check if response contains an image URL
@@ -81,6 +74,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         photo=BytesIO(image_response.content),
                         caption=product_text
                     )
+                    update_user_memory(user_id, product_text)
                 else:
                     await update.message.reply_text(response)
             except Exception as e:
@@ -96,6 +90,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
     logger.error(f'Update {update} caused error {context.error}')
+    if update.message:
+        user_id = str(update.message.from_user.id)
+        update_user_memory(user_id, "[System encountered an error]")
 
 def main():
     """Start the bot."""
@@ -113,6 +110,7 @@ def main():
     application.add_error_handler(error_handler)
 
     # Start the Bot
+    logger.info("Starting Telegram bot...")
     application.run_polling()
 
 if __name__ == '__main__':
