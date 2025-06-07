@@ -227,7 +227,12 @@ def send_message(recipient_id, message=None):
         if response.status_code == 200:
             logger.info(f"Message sent to {recipient_id}")
         else:
-            logger.error(f"Failed to send message: {response.text}")
+            # Skip logging for "No matching user found" error
+            error_data = response.json()
+            if not (response.status_code == 400 and 
+                   error_data.get("error", {}).get("code") == 100 and 
+                   error_data.get("error", {}).get("error_subcode") == 2018001):
+                logger.error(f"Failed to send message: {response.text}")
     except Exception as e:
         logger.error(f"Error sending message: {str(e)}")
 
@@ -258,7 +263,12 @@ def send_image(recipient_id, image_url):
         if response.status_code == 200:
             logger.info(f"Image sent to {recipient_id}")
         else:
-            logger.error(f"Failed to send image: {response.text}")
+            # Skip logging for "No matching user found" error
+            error_data = response.json()
+            if not (response.status_code == 400 and 
+                   error_data.get("error", {}).get("code") == 100 and 
+                   error_data.get("error", {}).get("error_subcode") == 2018001):
+                logger.error(f"Failed to send image: {response.text}")
     except Exception as e:
         logger.error(f"Error sending image: {str(e)}")
 
