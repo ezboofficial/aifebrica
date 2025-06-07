@@ -6,6 +6,7 @@ from messageHandler import handle_text_message
 from dotenv import load_dotenv
 import requests
 from io import BytesIO
+from collections import deque
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +20,17 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
+
+# User memory for conversation history (same as in app.py)
+user_memory = {}
+
+def update_user_memory(user_id, message):
+    if user_id not in user_memory:
+        user_memory[user_id] = deque(maxlen=20)
+    user_memory[user_id].append(message)
+
+def get_conversation_history(user_id):
+    return "\n".join(user_memory.get(user_id, []))
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send a message when the command /start is issued."""
@@ -40,9 +52,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo_file = await update.message.photo[-1].get_file()
             image_url = photo_file.file_path
             message_text = f"image_url: {image_url}"
+            update_user_memory(user_id, "[User sent an image]")
+        else:
+            update_user_memory(user_id, message_text)
+        
+        # Get conversation history
+        conversation_history = get_conversation_history(user_id)
+        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
         
         # Process the message through your existing handler
-        response, _ = handle_text_message(message_text, None)
+        response, _ = handle_text_message(full_message, message_text)
+        
+        # Update memory with the response if it's not an image
+        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+            update_user_memory(user_id, response)
         
         # Check if response contains an image URL
         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
