@@ -111,7 +111,8 @@ def remove_product(index):
 
 # Orders List
 orders = [
-    {'name': 'Adiba', 'mobile': '01707322649', 'address': 'Karatia,Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'COD', 'total': 840, 'delivery_charge': 60, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'}
+    {'name': 'Adiba', 'mobile': '01707322649', 'address': 'Karatia,Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'COD', 'total': 840, 'delivery_charge': 60, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'},
+    {'name': 'Adiba', 'mobile': '01707322649', 'address': '12-7,Karatia, Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'Bkash', 'transaction_id': 'CF30M88M2I', 'total': 940, 'delivery_charge': 160, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'}
 ]
 
 # Sales Logs List
