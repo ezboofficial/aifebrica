@@ -7,16 +7,25 @@ from dotenv import load_dotenv
 import requests
 from io import BytesIO
 from collections import deque
+import warnings
 
 # Load environment variables
 load_dotenv()
 
-# Configure logging
+# Configure logging - add filter to suppress the specific error
+class SingleUpdateFilter(logging.Filter):
+    def filter(self, record):
+        return not ("terminated by other getUpdates request" in record.getMessage())
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# Apply filter to telegram.ext logger
+telegram_logger = logging.getLogger('telegram.ext.Updater')
+telegram_logger.addFilter(SingleUpdateFilter())
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
@@ -46,9 +55,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.message.from_user.id
         message_text = update.message.text
         
-        # Check for photo
         if update.message.photo:
-            # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
             image_url = photo_file.file_path
             message_text = f"image_url: {image_url}"
@@ -56,27 +63,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             update_user_memory(user_id, message_text)
         
-        # Get conversation history
         conversation_history = get_conversation_history(user_id)
         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
         
-        # Process the message through your existing handler
         response, _ = handle_text_message(full_message, message_text)
         
-        # Update memory with the response if it's not an image
         if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
             update_user_memory(user_id, response)
         
-        # Check if response contains an image URL
         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             try:
                 image_url = response.split(" - ")[-1].strip()
                 product_text = response.split(" - ")[0]
                 
-                # Download image
                 image_response = requests.get(image_url)
                 if image_response.status_code == 200:
-                    # Send image
                     await update.message.reply_photo(
                         photo=BytesIO(image_response.content),
                         caption=product_text
@@ -93,12 +94,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error in handle_message: {str(e)}")
         await update.message.reply_text("Sorry, I encountered an error processing your message.")
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Log errors but suppress the 'terminated by other getUpdates request' warning."""
-    if "terminated by other getUpdates request" in str(context.error):
-        return  # Silently ignore this specific error
-    logger.error(f'Update {update} caused error {context.error}')
-
 def main():
     """Start the bot."""
     if not TELEGRAM_TOKEN:
@@ -112,7 +107,6 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
-    application.add_error_handler(error_handler)
 
     # Start the Bot
     application.run_polling()
