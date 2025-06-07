@@ -1,6 +1,5 @@
 import os
 import logging
-import time
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from messageHandler import handle_text_message
@@ -104,33 +103,17 @@ def main():
         logger.error("TELEGRAM_TOKEN environment variable not set")
         return
     
-    # Add retry logic with delay
-    max_retries = 3
-    retry_delay = 5  # seconds
-    
-    for attempt in range(max_retries):
-        try:
-            # Create the Application
-            application = Application.builder().token(TELEGRAM_TOKEN).build()
+    # Create the Application
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-            # Add handlers
-            application.add_handler(CommandHandler("start", start))
-            application.add_handler(CommandHandler("help", help_command))
-            application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
-            application.add_error_handler(error_handler)
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
+    application.add_error_handler(error_handler)
 
-            # Start the Bot
-            logger.info("Starting Telegram bot...")
-            application.run_polling()
-            break
-            
-        except Exception as e:
-            if "terminated by other getUpdates request" in str(e) and attempt < max_retries - 1:
-                logger.warning(f"Bot conflict detected, retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})")
-                time.sleep(retry_delay)
-                continue
-            logger.error(f"Failed to start Telegram bot: {str(e)}")
-            break
+    # Start the Bot
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
