@@ -22,8 +22,6 @@ import uuid
 import json
 import threading
 import telegram_bot  # New import for Telegram integration
-import signal
-import sys
 
 load_dotenv()
 
@@ -959,28 +957,14 @@ def send_order_notification(order):
         logger.error(f"Failed to send order notification email: {str(e)}")
         return False
 
-def signal_handler(sig, frame):
-    logger.info("Shutdown signal received, shutting down gracefully...")
-    sys.exit(0)
-
 if __name__ == '__main__':
-    # Register signal handlers for graceful shutdown
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    # Start Flask app in a separate thread
+    flask_thread = threading.Thread(
+        target=app.run,
+        kwargs={'debug': True, 'host': '0.0.0.0', 'port': 3000, 'use_reloader': False}
+    )
+    flask_thread.daemon = True
+    flask_thread.start()
     
-    try:
-        logger.info("Starting application...")
-        
-        # Start Telegram bot in a separate thread
-        telegram_thread = threading.Thread(target=telegram_bot.main, daemon=True)
-        telegram_thread.start()
-        
-        # Start Flask app in main thread
-        app.run(debug=True, host='0.0.0.0', port=3000, use_reloader=False)
-        
-    except KeyboardInterrupt:
-        logger.info("Shutting down gracefully...")
-    except Exception as e:
-        logger.error(f"Application error: {str(e)}")
-    finally:
-        logger.info("Application stopped")
+    # Start Telegram bot in main thread
+    telegram_bot.main()
