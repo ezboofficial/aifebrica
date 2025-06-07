@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history (same as in app.py)
+# User memory for conversation history
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -94,11 +94,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Sorry, I encountered an error processing your message.")
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Log errors."""
-    error_msg = str(context.error)
-    # Skip logging the "terminated by other getUpdates request" error
-    if "terminated by other getUpdates request" not in error_msg:
-        logger.error(f'Update {update} caused error {context.error}')
+    """Log errors but suppress the 'terminated by other getUpdates request' warning."""
+    if "terminated by other getUpdates request" in str(context.error):
+        return  # Silently ignore this specific error
+    logger.error(f'Update {update} caused error {context.error}')
 
 def main():
     """Start the bot."""
