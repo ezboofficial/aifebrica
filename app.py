@@ -20,6 +20,8 @@ import tempfile
 import shutil
 import uuid
 import json
+import threading
+import telegram_bot  # New import for Telegram integration
 
 load_dotenv()
 
@@ -956,13 +958,10 @@ def send_order_notification(order):
         return False
 
 if __name__ == '__main__':
-    import threading
-    import telegram_bot
-    
     # Start Flask app in a separate thread
     flask_thread = threading.Thread(
         target=app.run,
-        kwargs={'debug': True, 'host': '0.0.0.0', 'port': 3000}
+        kwargs={'debug': True, 'host': '0.0.0.0', 'port': 3000, 'use_reloader': False}
     )
     flask_thread.daemon = True
     flask_thread.start()
