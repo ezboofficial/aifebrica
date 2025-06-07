@@ -112,7 +112,8 @@ def remove_product(index):
 # Orders List
 orders = [
     {'name': 'Adiba', 'mobile': '01707322649', 'address': 'Karatia,Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'COD', 'total': 840, 'delivery_charge': 60, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'},
-    {'name': 'Adiba', 'mobile': '01707322649', 'address': '12-7,Karatia, Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'Bkash', 'transaction_id': 'CF30M88M2I', 'total': 940, 'delivery_charge': 160, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'}
+    {'name': 'Adiba', 'mobile': '01707322649', 'address': '12-7,Karatia, Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'Bkash', 'transaction_id': 'CF30M88M2I', 'total': 940, 'delivery_charge': 160, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'},
+    {'name': 'Mr. Beast', 'mobile': '01709805110', 'address': 'Sector 10, Road 8, Uttara, Dhaka', 'product': 'Dress Shoes (40, Black)', 'price': 950, 'payment_method': 'Bkash', 'transaction_id': 'TXN23060511254789', 'total': 1010, 'delivery_charge': 60, 'subtotal': 950, 'status': 'Preparing', 'date': '2025-06-07'}
 ]
 
 # Sales Logs List
