@@ -956,4 +956,16 @@ def send_order_notification(order):
         return False
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    import threading
+    import telegram_bot
+    
+    # Start Flask app in a separate thread
+    flask_thread = threading.Thread(
+        target=app.run,
+        kwargs={'debug': True, 'host': '0.0.0.0', 'port': 3000}
+    )
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    # Start Telegram bot in main thread
+    telegram_bot.main()
