@@ -41,14 +41,14 @@ async def on_ready():
     logger.info(f'Logged in as {bot.user.name} (ID: {bot.user.id})')
     logger.info('------')
 
-@bot.command(name='start')
+@bot.command(name='shopstart')
 async def start(ctx):
-    """Send a message when the command !start is issued."""
+    """Send a message when the command !shopstart is issued."""
     await ctx.send('Hi! I am your shop assistant. How can I help you today?')
 
-@bot.command(name='help')
+@bot.command(name='shophelp')
 async def help_command(ctx):
-    """Send a message when the command !help is issued."""
+    """Send a message when the command !shophelp is issued."""
     await ctx.send('I can help you with product inquiries and orders. Just send me a message!')
 
 @bot.event
