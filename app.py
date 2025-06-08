@@ -22,6 +22,7 @@ import uuid
 import json
 import threading
 import telegram_bot  # New import for Telegram integration
+import discord_bot  # New import for Discord integration
 
 load_dotenv()
 
@@ -976,12 +977,10 @@ if __name__ == '__main__':
     flask_thread.daemon = True
     flask_thread.start()
     
-    # Start Telegram bot in a separate thread
-    telegram_thread = threading.Thread(
-        target=telegram_bot.main
-    )
-    telegram_thread.daemon = True
-    telegram_thread.start()
+    # Start Discord bot in a separate thread
+    discord_thread = threading.Thread(target=discord_bot.run_discord_bot)
+    discord_thread.daemon = True
+    discord_thread.start()
     
-    # Start Discord bot in the main thread
-    discord_bot.run_discord_bot()
+    # Start Telegram bot in main thread
+    telegram_bot.main()
