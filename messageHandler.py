@@ -516,7 +516,7 @@ def handle_text_message(full_message, message_text, image_data=None):
         logger.info("Processing text message: %s", user_message)
         
         # Check if this is an image attachment
-        if "i        if image_data:
+        if image_data:
             matched_product, score = analyze_and_match_product(image_data=image_data)
         elif "image_url:" in user_message:
             image_url = extract_image_url(user_message)
