@@ -51,7 +51,7 @@ class DiscordBot(commands.Bot):
             return
 
         try:
-            user_id = str(message.author.id) # Use string for user_id consistency
+            user_id = str(message.author.id)
             message_text = message.content
             
             # Handle attachments (images)
@@ -59,11 +59,12 @@ class DiscordBot(commands.Bot):
             if message.attachments:
                 for attachment in message.attachments:
                     if 'image' in attachment.content_type:
-                        image_url = attachment.url
+                        # Use proxy_url for reliable CDN access
+                        image_url = attachment.proxy_url
                         message_text = f"image_url: {image_url}"
                         update_user_memory(user_id, "[User sent an image]")
                         image_processed = True
-                        break # Process only the first image attachment
+                        break  # Process only the first image attachment
             
             if not image_processed:
                 update_user_memory(user_id, message_text)
@@ -89,7 +90,9 @@ class DiscordBot(commands.Bot):
                     image_response = requests.get(image_url)
                     if image_response.status_code == 200:
                         # Send image
-                        await message.channel.send(product_text, file=discord.File(BytesIO(image_response.content), 'image.png'))
+                        await message.channel.send(
+                            product_text, 
+                            file=discord.File(BytesIO(image_response.content), 'image.png')
                     else:
                         await message.channel.send(response)
                 except Exception as e:
