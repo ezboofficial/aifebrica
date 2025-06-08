@@ -21,8 +21,8 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # Telegram integration
-import discord_bot   # Discord integration
+import telegram_bot  # Import for Telegram integration
+import discord_bot   # Import for Discord integration
 
 load_dotenv()
 
@@ -985,4 +985,4 @@ if __name__ == '__main__':
     telegram_thread.start()
     
     # Start Discord bot in main thread
-    discord_bot.run_discord_bot()
+    discord_bot.main()
