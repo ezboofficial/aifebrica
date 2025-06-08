@@ -21,8 +21,7 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # Import for Telegram integration
-import discord_bot   # Import for Discord integration
+import telegram_bot  # New import for Telegram integration
 
 load_dotenv()
 
