@@ -101,7 +101,26 @@ def run_discord_bot():
         logger.error("DISCORD_TOKEN environment variable not set")
         return
     
-    bot.run(DISCORD_TOKEN)
+    # Configure intents
+    intents = discord.Intents.default()
+    intents.message_content = True
+    
+    # Create bot instance with proper settings
+    bot = commands.Bot(
+        command_prefix='!',
+        intents=intents,
+        help_command=None  # Disable default help command
+    )
+    
+    # Add event handlers
+    bot.event(on_ready)
+    bot.event(on_message)
+    
+    try:
+        bot.run(DISCORD_TOKEN)
+    except Exception as e:
+        logger.error(f"Discord bot error: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     run_discord_bot()
