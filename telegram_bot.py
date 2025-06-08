@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history (same as in app.py)
+# User memory for conversation history
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -45,7 +45,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.message.from_user.id
         message_text = update.message.text
-        
+
         # Check for photo
         if update.message.photo:
             # Get the highest quality photo
@@ -55,24 +55,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             update_user_memory(user_id, "[User sent an image]")
         else:
             update_user_memory(user_id, message_text)
-        
+
         # Get conversation history
         conversation_history = get_conversation_history(user_id)
         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-        
+
         # Process the message through your existing handler
         response, _ = handle_text_message(full_message, message_text)
-        
+
         # Update memory with the response if it's not an image
         if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
             update_user_memory(user_id, response)
-        
+
         # Check if response contains an image URL
         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             try:
                 image_url = response.split(" - ")[-1].strip()
                 product_text = response.split(" - ")[0]
-                
+
                 # Download image
                 image_response = requests.get(image_url)
                 if image_response.status_code == 200:
@@ -88,13 +88,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(response)
         else:
             await update.message.reply_text(response)
-            
+
     except Exception as e:
         logger.error(f"Error in handle_message: {str(e)}")
         await update.message.reply_text("Sorry, I encountered an error processing your message.")
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Log errors."""
+    """Log errors except for the known harmless 'getUpdates' conflict."""
+    if "terminated by other getUpdates request" in str(context.error):
+        return  # Silently ignore it
     logger.error(f'Update {update} caused error {context.error}')
 
 def main():
@@ -102,7 +104,7 @@ def main():
     if not TELEGRAM_TOKEN:
         logger.error("TELEGRAM_TOKEN environment variable not set")
         return
-    
+
     # Create the Application
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -115,8 +117,5 @@ def main():
     # Start the Bot
     application.run_polling()
 
-
-
-
-def start_bot():
+if __name__ == '__main__':
     main()
