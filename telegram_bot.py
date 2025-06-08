@@ -50,7 +50,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message.photo:
             # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
-            image_url = photo_file.download_url
+            image_url = photo_file.file_path
             message_text = f"image_url: {image_url}"
             update_user_memory(user_id, "[User sent an image]")
         else:
