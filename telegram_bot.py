@@ -50,7 +50,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message.photo:
             # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
-            image_url = photo_file.file_path
+            # Use direct download URL with bot token
+            image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{photo_file.file_path}"
             message_text = f"image_url: {image_url}"
             update_user_memory(user_id, "[User sent an image]")
         else:
