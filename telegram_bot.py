@@ -65,11 +65,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response, _ = handle_text_message(full_message, message_text)
         
         # Update memory with the response if it's not an image
-        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+        if not (response.count(" - ") == 1 and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
             update_user_memory(user_id, response)
         
         # Check if response contains an image URL
-        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+        if response.count(" - ") == 1 and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             try:
                 image_url = response.split(" - ")[-1].strip()
                 product_text = response.split(" - ")[0]
