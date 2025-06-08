@@ -522,7 +522,7 @@ def handle_text_message(full_message, message_text, image_data=None):
             image_url = extract_image_url(user_message)
             matched_product, score = analyze_and_match_product(image_url=image_url)
         else:
-            matched_product, score = None, 0t:
+            matched_product, score = None, 0
                     response = (
                         f"I found a similar product in our catalog ({(score*100):.1f}% match):\n"
                         f"{matched_product['type']} ({matched_product['category']})\n"
