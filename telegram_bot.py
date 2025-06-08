@@ -2,6 +2,7 @@ import os
 import logging
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.error import Conflict
 from messageHandler import handle_text_message
 from dotenv import load_dotenv
 import requests
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history (same as in app.py)
+# User memory for conversation history
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -94,7 +95,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Sorry, I encountered an error processing your message.")
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Log errors."""
+    """Log errors but suppress the 'terminated by other getUpdates request' message."""
+    if (isinstance(context.error, Conflict) and 
+        "terminated by other getUpdates request" in str(context.error)):
+        return  # Silently ignore this specific error
+    
     logger.error(f'Update {update} caused error {context.error}')
 
 def main():
