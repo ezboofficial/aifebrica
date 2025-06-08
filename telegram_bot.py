@@ -43,17 +43,21 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming messages."""
     try:
-        user_id = update.message.from_user.id
-        message_text = update.message.text
+        user_id = str(update.message.from_user.id)
+        message_text = update.message.text if update.message.text else ""
         
         # Check for photo
+        image_processed = False
         if update.message.photo:
             # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
-            image_url = photo_file.file_path
+            # Use direct download URL with bot token
+            image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{photo_file.file_path}"
             message_text = f"image_url: {image_url}"
             update_user_memory(user_id, "[User sent an image]")
-        else:
+            image_processed = True
+        
+        if not image_processed and message_text:
             update_user_memory(user_id, message_text)
         
         # Get conversation history
@@ -61,10 +65,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
         
         # Process the message through your existing handler
-        response, _ = handle_text_message(full_message, message_text)
+        response, matched_product = handle_text_message(full_message, message_text)
         
         # Update memory with the response if it's not an image
-        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             update_user_memory(user_id, response)
         
         # Check if response contains an image URL
@@ -81,6 +85,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         photo=BytesIO(image_response.content),
                         caption=product_text
                     )
+                    if matched_product:
+                        update_user_memory(user_id, product_text)
                 else:
                     await update.message.reply_text(response)
             except Exception as e:
@@ -95,10 +101,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
-    error_msg = str(context.error)
-    # Skip logging the "terminated by other getUpdates request" error
-    if "terminated by other getUpdates request" not in error_msg:
-        logger.error(f'Update {update} caused error {context.error}')
+    logger.error(f'Update {update} caused error {context.error}')
 
 def main():
     """Start the bot."""
