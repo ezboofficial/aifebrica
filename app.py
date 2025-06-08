@@ -978,11 +978,13 @@ if __name__ == '__main__':
     flask_thread.start()
     
     # Start Telegram bot in a separate thread
-    telegram_thread = threading.Thread(
-        target=telegram_bot.main
-    )
-    telegram_thread.daemon = True
-    telegram_thread.start()
+    if os.getenv("TELEGRAM_TOKEN"):
+        telegram_thread = threading.Thread(
+            target=telegram_bot.main,
+            daemon=True
+        )
+        telegram_thread.start()
     
-    # Start Discord bot in main thread
-    discord_bot.run_discord_bot()
+    # Start Discord bot in the main thread
+    if os.getenv("DISCORD_TOKEN"):
+        discord_bot.run_discord_bot()
