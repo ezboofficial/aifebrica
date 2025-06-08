@@ -103,7 +103,7 @@ def main():
         logger.error("TELEGRAM_TOKEN environment variable not set")
         return
     
-    # Create the Application
+    # Create the Application with proper persistence
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Add handlers
@@ -112,8 +112,12 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
     application.add_error_handler(error_handler)
 
-    # Start the Bot
-    application.run_polling()
+    # Start the Bot with proper shutdown handling
+    try:
+        application.run_polling(drop_pending_updates=True)
+    except Exception as e:
+        logger.error(f"Telegram bot error: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     main()
