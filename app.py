@@ -21,7 +21,7 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # Import for Telegram integration
+import telegram_bot  # New import for Telegram integration
 
 load_dotenv()
 
@@ -968,19 +968,13 @@ def send_order_notification(order):
         return False
 
 if __name__ == '__main__':
-    # Only start the Telegram bot if this is the main process
-    # and not running under a WSGI server or other process manager
-    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true' and os.environ.get('TELEGRAM_BOT_DISABLED') != 'true':
-        # Start Flask app in a separate thread
-        flask_thread = threading.Thread(
-            target=app.run,
-            kwargs={'debug': True, 'host': '0.0.0.0', 'port': 3000, 'use_reloader': False}
-        )
-        flask_thread.daemon = True
-        flask_thread.start()
-        
-        # Start Telegram bot in main thread
-        telegram_bot.main()
-    else:
-        # Just run Flask if this is a reloader process
-        app.run(debug=True, host='0.0.0.0', port=3000, use_reloader=False)
+    # Start Flask app in a separate thread
+    flask_thread = threading.Thread(
+        target=app.run,
+        kwargs={'debug': True, 'host': '0.0.0.0', 'port': 3000, 'use_reloader': False}
+    )
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    # Start Telegram bot in main thread
+    telegram_bot.main()
