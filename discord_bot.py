@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# User memory for conversation history (same as in app.py)
+# User memory for conversation history
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -49,7 +49,7 @@ async def start(ctx):
 @bot.command()
 async def assist(ctx):
     """Send a message when the command !assist is issued."""
-    await ctx.send('I can help you with product inquiries and orders. Just send me a message!')
+    await ctx.send('I can assist you with product inquiries and orders. Just send me a message!')
 
 @bot.event
 async def on_message(message):
@@ -59,16 +59,16 @@ async def on_message(message):
 
     try:
         user_id = message.author.id
+        message_text = message.content
         
         # Check for attachments (images)
         if message.attachments:
             for attachment in message.attachments:
-                if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                if any(attachment.filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                     message_text = f"image_url: {attachment.url}"
                     update_user_memory(user_id, "[User sent an image]")
                     break
         else:
-            message_text = message.content
             update_user_memory(user_id, message_text)
         
         # Get conversation history
@@ -92,11 +92,10 @@ async def on_message(message):
                 image_response = requests.get(image_url)
                 if image_response.status_code == 200:
                     # Send image
-                    with BytesIO(image_response.content) as image_binary:
-                        await message.channel.send(
-                            content=product_text,
-                            file=discord.File(image_binary, filename='product.jpg')
-                        )
+                    await message.channel.send(
+                        content=product_text,
+                        file=discord.File(BytesIO(image_response.content), filename="product.jpg")
+                    )
                 else:
                     await message.channel.send(response)
             except Exception as e:
@@ -112,13 +111,9 @@ async def on_message(message):
     # Process commands after handling the message
     await bot.process_commands(message)
 
-def main():
-    """Start the bot."""
+def run_discord_bot():
     if not DISCORD_TOKEN:
         logger.error("DISCORD_TOKEN environment variable not set")
         return
     
     bot.run(DISCORD_TOKEN)
-
-if __name__ == '__main__':
-    main()
