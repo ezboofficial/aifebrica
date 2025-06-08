@@ -1,12 +1,12 @@
 import os
+import logging
 import discord
 from discord.ext import commands
 from messageHandler import handle_text_message
 from dotenv import load_dotenv
-import logging
-from collections import deque
 import requests
 from io import BytesIO
+from collections import deque
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# User memory for conversation history (same as in app.py and telegram_bot.py)
+# User memory for conversation history (same as in app.py)
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -33,12 +33,23 @@ def get_conversation_history(user_id):
 
 intents = discord.Intents.default()
 intents.message_content = True
+
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
     logger.info(f'Logged in as {bot.user} (ID: {bot.user.id})')
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    logger.info('------')
+
+@bot.command()
+async def start(ctx):
+    """Send a message when the command !start is issued."""
+    await ctx.send('Hi! I am your shop assistant. How can I help you today?')
+
+@bot.command()
+async def help(ctx):
+    """Send a message when the command !help is issued."""
+    await ctx.send('I can help you with product inquiries and orders. Just send me a message!')
 
 @bot.event
 async def on_message(message):
@@ -47,14 +58,13 @@ async def on_message(message):
         return
 
     try:
-        user_id = str(message.author.id)
+        user_id = message.author.id
         
         # Check for attachments (images)
         if message.attachments:
             for attachment in message.attachments:
-                if attachment.content_type.startswith('image/'):
-                    image_url = attachment.url
-                    message_text = f"image_url: {image_url}"
+                if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                    message_text = f"image_url: {attachment.url}"
                     update_user_memory(user_id, "[User sent an image]")
                     break
         else:
@@ -82,8 +92,11 @@ async def on_message(message):
                 image_response = requests.get(image_url)
                 if image_response.status_code == 200:
                     # Send image
-                    file = discord.File(BytesIO(image_response.content), filename="product.jpg")
-                    await message.channel.send(content=product_text, file=file)
+                    with BytesIO(image_response.content) as image_binary:
+                        await message.channel.send(
+                            content=product_text,
+                            file=discord.File(image_binary, filename='product.jpg')
+                        )
                 else:
                     await message.channel.send(response)
             except Exception as e:
@@ -93,10 +106,14 @@ async def on_message(message):
             await message.channel.send(response)
             
     except Exception as e:
-        logger.error(f"Error in message handling: {str(e)}")
+        logger.error(f"Error in on_message: {str(e)}")
         await message.channel.send("Sorry, I encountered an error processing your message.")
 
-def run_discord_bot():
+    # Process commands after handling the message
+    await bot.process_commands(message)
+
+def main():
+    """Start the bot."""
     if not DISCORD_TOKEN:
         logger.error("DISCORD_TOKEN environment variable not set")
         return
@@ -104,4 +121,4 @@ def run_discord_bot():
     bot.run(DISCORD_TOKEN)
 
 if __name__ == '__main__':
-    run_discord_bot()
+    main()
