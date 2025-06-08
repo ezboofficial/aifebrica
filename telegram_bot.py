@@ -1,30 +1,16 @@
-import os
+To suppress the specific error log about the Telegram bot conflict and generally reduce error logging, you can modify the logging configuration in your `telegram_bot.py` file. Here's how to do it:
+
+1. First, modify the logging configuration at the top of `telegram_bot.py` to filter out this specific error:
+
+```python
 import logging
-from telegram import Update, InputFile
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from messageHandler import handle_text_message
-from dotenv import load_dotenv
-import requests
-from io import BytesIO
-from collections import deque
+from logging import Filter
 
-# Load environment variables
-load_dotenv()
-
-# Custom logger class to filter out specific messages
-class FilteredLogger(logging.Logger):
-    def __init__(self, name, level=logging.NOTSET):
-        super().__init__(name, level)
-    
-    def handle(self, record):
-        # Skip processing if it's the conflict error we want to hide
-        if (record.levelno == logging.ERROR and 
-            "Conflict: terminated by other getUpdates request" in record.getMessage()):
-            return
-        super().handle(record)
-
-# Replace the default logger class with our filtered version
-logging.setLoggerClass(FilteredLogger)
+class TelegramConflictFilter(Filter):
+    def filter(self, record):
+        # Filter out the "Conflict: terminated by other getUpdates request" message
+        return not (record.levelno == logging.ERROR and 
+                  "Conflict: terminated by other getUpdates request" in record.getMessage())
 
 # Configure logging
 logging.basicConfig(
@@ -33,10 +19,76 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add filter to the telegram.ext logger to suppress the conflict error
+telegram_logger = logging.getLogger('telegram.ext.Updater')
+telegram_logger.addFilter(TelegramConflictFilter())
+```
+
+2. If you want to completely disable all error logs from the Telegram bot (not recommended, but if you really want to), you can set the logging level to CRITICAL:
+
+```python
+# Configure logging - minimal version
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.CRITICAL  # Only show critical errors
+)
+```
+
+3. Alternatively, if you want to keep your current logging level but suppress all error logs from the Telegram library, you can do:
+
+```python
+# Configure logging - suppress telegram errors
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+# Disable all error logs from telegram.ext
+logging.getLogger('telegram.ext').setLevel(logging.CRITICAL)
+```
+
+Choose the approach that best fits your needs. The first solution (with the custom filter) is the most targeted approach as it only suppresses that specific conflict error while keeping other error logs visible.
+
+The conflict error itself occurs when multiple instances of your bot are running simultaneously trying to poll for updates. While suppressing the error will make your logs cleaner, you should also ensure you only have one instance of your bot running to avoid any potential issues.
+
+Here's the complete modified `telegram_bot.py` with the first approach (custom filter):
+
+```python
+import os
+import logging
+from logging import Filter
+from telegram import Update, InputFile
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from messageHandler import handle_text_message
+from dotenv import load_dotenv
+import requests
+from io import BytesIO
+from collections import deque
+
+class TelegramConflictFilter(Filter):
+    def filter(self, record):
+        # Filter out the "Conflict: terminated by other getUpdates request" message
+        return not (record.levelno == logging.ERROR and 
+                  "Conflict: terminated by other getUpdates request" in record.getMessage())
+
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Add filter to suppress the conflict error
+telegram_logger = logging.getLogger('telegram.ext.Updater')
+telegram_logger.addFilter(TelegramConflictFilter())
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history
+# User memory for conversation history (same as in app.py)
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -110,10 +162,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
-    # Skip logging if it's the conflict error
-    if not (isinstance(context.error, str) and 
-            "Conflict: terminated by other getUpdates request" in context.error):
-        logger.error(f'Update {update} caused error {context.error}')
+    logger.error(f'Update {update} caused error {context.error}')
 
 def main():
     """Start the bot."""
@@ -135,3 +184,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+```
