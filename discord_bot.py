@@ -1,8 +1,7 @@
 import os
 import logging
-import discord
-from discord.ext import commands
-import asyncio
+from telegram import Update, InputFile
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from messageHandler import handle_text_message
 from dotenv import load_dotenv
 import requests
@@ -21,107 +20,96 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-class DiscordBot(commands.Bot):
-    def __init__(self):
-        intents = discord.Intents.default()
-        intents.message_content = True
-        super().__init__(command_prefix='!', intents=intents)
+user_memory = {}
 
-    async def on_ready(self):
-        logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
-        logger.info('------')
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('Hi! I am your shop assistant. How can I help you today?')
 
-    async def process_image_attachment(self, attachment):
-        """Process image attachment and return temporary file path"""
-        try:
-            # Try both URL and proxy_url
-            for url in [attachment.url, attachment.proxy_url]:
-                try:
-                    response = requests.get(url, stream=True)
-                    if response.status_code == 200:
-                        # Create temp file
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
-                            for chunk in response.iter_content(1024):
-                                tmp.write(chunk)
-                            return tmp.name
-                except Exception as e:
-                    logger.warning(f"Failed to download image from {url}: {str(e)}")
-                    continue
-        except Exception as e:
-            logger.error(f"Error processing image attachment: {str(e)}")
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text('I can help you with product inquiries and orders. Just send me a message!')
+
+async def process_telegram_photo(photo_file):
+    """Process Telegram photo and return temporary file path"""
+    try:
+        # Download photo content
+        photo_bytes = await photo_file.download_as_bytearray()
+        
+        # Create temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+            tmp.write(photo_bytes)
+            return tmp.name
+    except Exception as e:
+        logger.error(f"Error processing Telegram photo: {str(e)}")
         return None
 
-    async def on_message(self, message):
-        if message.author == self.user:
-            return
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        user_id = str(update.message.from_user.id)
+        message_text = update.message.text or ""
+        image_path = None
 
-        if message.content.startswith('!'):
-            await self.process_commands(message)
-            return
-
-        try:
-            user_id = str(message.author.id)
-            message_text = message.content
-            image_processed = False
-            image_path = None
-
-            # Handle image attachments
-            if message.attachments:
-                for attachment in message.attachments:
-                    if 'image' in attachment.content_type:
-                        image_path = await self.process_image_attachment(attachment)
-                        if image_path:
-                            message_text = f"image_url: file://{image_path}"
-                            update_user_memory(user_id, "[User sent an image]")
-                            image_processed = True
-                            break
-
-            if not image_processed:
-                update_user_memory(user_id, message_text)
-
-            # Get conversation history
-            conversation_history = get_conversation_history(user_id)
-            full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-
-            # Process message
-            response, _ = handle_text_message(full_message, message_text)
-
-            # Clean up temp file if exists
-            if image_path and os.path.exists(image_path):
-                try:
-                    os.unlink(image_path)
-                except Exception as e:
-                    logger.warning(f"Failed to delete temp image: {str(e)}")
-
-            # Update memory with response
-            if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
-                update_user_memory(user_id, response)
-
-            # Handle image response
-            if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                try:
-                    image_url = response.split(" - ")[-1].strip()
-                    product_text = response.split(" - ")[0]
-                    
-                    async with message.channel.typing():
-                        image_response = requests.get(image_url)
-                        if image_response.status_code == 200:
-                            await message.channel.send(
-                                product_text,
-                                file=discord.File(BytesIO(image_response.content), 'product.jpg')
-                        else:
-                            await message.channel.send(response)
-                except Exception as e:
-                    logger.error(f"Error sending product image: {str(e)}")
-                    await message.channel.send(response)
+        # Handle photo
+        if update.message.photo:
+            photo_file = await update.message.photo[-1].get_file()
+            image_path = await process_telegram_photo(photo_file)
+            if image_path:
+                message_text = f"image_url: file://{image_path}"
+                update_user_memory(user_id, "[User sent an image]")
             else:
-                await message.channel.send(response)
+                await update.message.reply_text("Sorry, I couldn't process that image. Please try again.")
+                return
 
-        except Exception as e:
-            logger.error(f"Error in message processing: {str(e)}")
-            await message.channel.send("Sorry, I encountered an error processing your message.")
+        elif message_text:
+            update_user_memory(user_id, message_text)
+
+        # Get conversation history
+        conversation_history = get_conversation_history(user_id)
+        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+
+        # Process message
+        response, _ = handle_text_message(full_message, message_text)
+
+        # Clean up temp file if exists
+        if image_path and os.path.exists(image_path):
+            try:
+                os.unlink(image_path)
+            except Exception as e:
+                logger.warning(f"Failed to delete temp image: {str(e)}")
+
+        # Update memory with response
+        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+            update_user_memory(user_id, response)
+
+        # Handle image response
+        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+            try:
+                image_url = response.split(" - ")[-1].strip()
+                product_text = response.split(" - ")[0]
+                
+                async with context.bot:
+                    image_response = requests.get(image_url)
+                    if image_response.status_code == 200:
+                        await update.message.reply_photo(
+                            photo=BytesIO(image_response.content),
+                            caption=product_text
+                        )
+                    else:
+                        await update.message.reply_text(response)
+            except Exception as e:
+                logger.error(f"Error sending product image: {str(e)}")
+                await update.message.reply_text(response)
+        else:
+            await update.message.reply_text(response)
+
+    except Exception as e:
+        logger.error(f"Error in message processing: {str(e)}")
+        await update.message.reply_text("Sorry, I encountered an error processing your message.")
+
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f'Update {update} caused error {context.error}')
 
 def update_user_memory(user_id, message):
     if user_id not in user_memory:
@@ -131,19 +119,19 @@ def update_user_memory(user_id, message):
 def get_conversation_history(user_id):
     return "\n".join(user_memory.get(user_id, []))
 
-def run_discord_bot():
-    if not DISCORD_TOKEN:
-        logger.error("DISCORD_TOKEN environment variable not set")
+def main():
+    if not TELEGRAM_TOKEN:
+        logger.error("TELEGRAM_TOKEN environment variable not set")
         return
     
-    bot = DiscordBot()
-    try:
-        bot.run(DISCORD_TOKEN)
-    except discord.LoginFailure:
-        logger.error("Discord bot failed to log in. Check your token.")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
+    application.add_error_handler(error_handler)
+
+    application.run_polling()
 
 if __name__ == '__main__':
-    user_memory = {}
-    run_discord_bot()
+    main()
