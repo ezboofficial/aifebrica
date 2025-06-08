@@ -48,7 +48,7 @@ async def start(ctx):
 
 @bot.command()
 async def help(ctx):
-    """Send a message when the command !helpai is issued."""
+    """Send a message when the command !help is issued."""
     await ctx.send('I can help you with product inquiries and orders. Just send me a message!')
 
 @bot.event
