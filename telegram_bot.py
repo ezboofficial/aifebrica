@@ -1,12 +1,13 @@
 import os
 import logging
 from telegram import Update, InputFile
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from messageHandler import handle_text_message
 from dotenv import load_dotenv
 import requests
 from io import BytesIO
 from collections import deque
+import fcntl # For file locking
 
 # Load environment variables
 load_dotenv()
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history
+# User memory for conversation history (same as in app.py)
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -96,8 +97,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
     logger.error(f'Update {update} caused error {context.error}')
-    if update and update.message:
-        await update.message.reply_text('An error occurred. Please try again later.')
 
 def main():
     """Start the bot."""
@@ -105,8 +104,21 @@ def main():
         logger.error("TELEGRAM_TOKEN environment variable not set")
         return
     
+    # Use a lock file to ensure only one instance is running
+    lock_file_path = "/tmp/telegram_bot.lock"
+    lock_file = None
     try:
-        # Create the Application with more robust settings
+        lock_file = open(lock_file_path, 'w')
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        logger.info("Acquired lock for Telegram bot.")
+    except IOError:
+        logger.warning("Another instance of Telegram bot is already running. Exiting.")
+        if lock_file:
+            lock_file.close()
+        return
+
+    try:
+        # Create the Application
         application = Application.builder().token(TELEGRAM_TOKEN).build()
 
         # Add handlers
@@ -115,20 +127,14 @@ def main():
         application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO, handle_message))
         application.add_error_handler(error_handler)
 
-        # Start the Bot with more robust settings
-        logger.info("Starting Telegram bot...")
-        application.run_polling(
-            poll_interval=1.0,
-            timeout=20,
-            drop_pending_updates=True,
-            allowed_updates=Update.ALL_TYPES,
-            close_loop=False
-        )
-    except Exception as e:
-        logger.error(f"Failed to start Telegram bot: {str(e)}")
-        raise
+        # Start the Bot
+        application.run_polling()
+    finally:
+        if lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
+            os.remove(lock_file_path)
+            logger.info("Released lock for Telegram bot.")
 
 if __name__ == '__main__':
-    # Only run if not being imported
-    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        main()
+    main()
