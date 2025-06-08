@@ -31,10 +31,17 @@ def update_user_memory(user_id, message):
 def get_conversation_history(user_id):
     return "\n".join(user_memory.get(user_id, []))
 
+# Configure intents - explicitly enable what we need
 intents = discord.Intents.default()
-intents.message_content = True
+intents.messages = True  # For receiving messages
+intents.message_content = True  # For reading message content (privileged intent)
+intents.guilds = True  # For server information
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(
+    command_prefix='!',
+    intents=intents,
+    help_command=None  # Disable the default help command
+)
 
 @bot.event
 async def on_ready():
@@ -49,7 +56,19 @@ async def start(ctx):
 @bot.command(name='shophelp')
 async def help_command(ctx):
     """Send a message when the command !shophelp is issued."""
-    await ctx.send('I can help you with product inquiries and orders. Just send me a message!')
+    help_text = """
+**Shop Bot Commands:**
+- `!shopstart`: Start interacting with the shop assistant
+- `!shophelp`: Show this help message
+
+**Regular Usage:**
+Just send messages to chat with the assistant. You can:
+- Ask about products
+- Send product images for identification
+- Place orders
+- Check order status
+"""
+    await ctx.send(help_text)
 
 @bot.event
 async def on_message(message):
