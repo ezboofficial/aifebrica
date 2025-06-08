@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
-# User memory for conversation history (same as in app.py)
+# User memory for conversation history
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -46,19 +46,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = str(update.message.from_user.id)
         message_text = update.message.text if update.message.text else ""
         
-        # Check for photo
-        image_processed = False
+        # Handle photo attachments
         if update.message.photo:
             # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
-            # Use direct download URL with bot token
-            image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{photo_file.file_path}"
-            message_text = f"image_url: {image_url}"
+            image_url = photo_file.file_path  # This is the path to the image on Telegram's servers
+            
+            # Create the proper image URL format that messageHandler expects
+            message_text = f"image_url: https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{image_url}"
             update_user_memory(user_id, "[User sent an image]")
-            image_processed = True
-        
-        if not image_processed and message_text:
-            update_user_memory(user_id, message_text)
         
         # Get conversation history
         conversation_history = get_conversation_history(user_id)
@@ -85,8 +81,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         photo=BytesIO(image_response.content),
                         caption=product_text
                     )
-                    if matched_product:
-                        update_user_memory(user_id, product_text)
                 else:
                     await update.message.reply_text(response)
             except Exception as e:
