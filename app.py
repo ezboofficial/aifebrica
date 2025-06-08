@@ -172,7 +172,8 @@ def webhook():
                                     update_user_memory(sender_id, "[User sent an image]")
                                     response, matched_product = messageHandler.handle_text_message(
                                         f"image_url: {image_url}", 
-                                        "[Image attachment]"
+                                        "[Image attachment]",
+                                        image_data=None
                                     )
                                     send_message(sender_id, response)
                                     if matched_product:
@@ -183,7 +184,7 @@ def webhook():
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-                        response, _ = messageHandler.handle_text_message(full_message, message_text)
+                        response, _ = messageHandler.handle_text_message(full_message, message_text, image_data=None)
                         
                         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                             try:
