@@ -252,11 +252,20 @@ def update_github_repo_orders(orders):
     except Exception as e:
         logger.error(f"Failed to update GitHub repository: {str(e)}")
 
-def analyze_and_match_product(image_url):
+def analyze_and_match_product(image_data=None, image_url=None):
     try:
-        # Download the user's image
-        response = requests.get(image_url)
-        user_img = Image.open(BytesIO(response.content))
+        logger.info(f"Attempting image analysis. image_data: {bool(image_data)}, image_url: {bool(image_url)}")
+        if image_data:
+            user_img = Image.open(BytesIO(image_data))
+            logger.info("Image loaded from image_data.")
+        elif image_url:
+            response = requests.get(image_url)
+            response.raise_for_status() # Raise an exception for HTTP errors
+            user_img = Image.open(BytesIO(response.content))
+            logger.info(f"Image loaded from URL: {image_url}")
+        else:
+            logger.warning("No image_data or image_url provided for analysis.")
+            return None, 0
         user_img = np.array(user_img)
         
         # Convert to grayscale and resize for comparison
@@ -502,16 +511,18 @@ def extract_order_details(response):
         logger.error(f"Error extracting order details: {str(e)}")
         return None
 
-def handle_text_message(user_message, last_message):
+def handle_text_message(full_message, message_text, image_data=None):
     try:
         logger.info("Processing text message: %s", user_message)
         
         # Check if this is an image attachment
-        if "image_url:" in user_message.lower():
+        if "i        if image_data:
+            matched_product, score = analyze_and_match_product(image_data=image_data)
+        elif "image_url:" in user_message:
             image_url = extract_image_url(user_message)
-            if image_url:
-                matched_product, score = analyze_and_match_product(image_url)
-                if matched_product:
+            matched_product, score = analyze_and_match_product(image_url=image_url)
+        else:
+            matched_product, score = None, 0t:
                     response = (
                         f"I found a similar product in our catalog ({(score*100):.1f}% match):\n"
                         f"{matched_product['type']} ({matched_product['category']})\n"
