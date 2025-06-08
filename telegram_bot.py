@@ -1,6 +1,5 @@
 import os
 import logging
-from logging import Filter
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from messageHandler import handle_text_message
@@ -8,12 +7,6 @@ from dotenv import load_dotenv
 import requests
 from io import BytesIO
 from collections import deque
-
-class TelegramConflictFilter(Filter):
-    def filter(self, record):
-        # Filter out the "Conflict: terminated by other getUpdates request" message
-        return not (record.levelno == logging.ERROR and 
-                  "Conflict: terminated by other getUpdates request" in record.getMessage())
 
 # Load environment variables
 load_dotenv()
@@ -24,10 +17,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-# Add filter to suppress the conflict error
-telegram_logger = logging.getLogger('telegram.ext.Updater')
-telegram_logger.addFilter(TelegramConflictFilter())
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
