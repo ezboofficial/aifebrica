@@ -95,7 +95,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
-    logger.error(f'Update {update} caused error {context.error}')
+    error_msg = str(context.error)
+    # Skip logging the "terminated by other getUpdates request" error
+    if "terminated by other getUpdates request" not in error_msg:
+        logger.error(f'Update {update} caused error {context.error}')
 
 def main():
     """Start the bot."""
