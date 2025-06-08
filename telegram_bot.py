@@ -18,12 +18,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Filter out specific Telegram error
-class TelegramFilter(logging.Filter):
+# Suppress "terminated by other getUpdates request" error
+class SuppressConflictErrorFilter(logging.Filter):
     def filter(self, record):
         return "terminated by other getUpdates request" not in record.getMessage()
 
-logging.getLogger("telegram.ext.Updater").addFilter(TelegramFilter())
+logger.addFilter(SuppressConflictErrorFilter())
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
