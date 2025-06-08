@@ -3,10 +3,10 @@ import logging
 import discord
 from discord.ext import commands
 from messageHandler import handle_text_message
+from collections import deque
 from dotenv import load_dotenv
 import requests
 from io import BytesIO
-from collections import deque
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# User memory for conversation history (same as in app.py and telegram_bot.py)
+# User memory for conversation history
 user_memory = {}
 
 def update_user_memory(user_id, message):
@@ -31,114 +31,75 @@ def update_user_memory(user_id, message):
 def get_conversation_history(user_id):
     return "\n".join(user_memory.get(user_id, []))
 
-# Configure intents - explicitly enable what we need
-intents = discord.Intents.default()
-intents.messages = True  # For receiving messages
-intents.message_content = True  # For reading message content (privileged intent)
-intents.guilds = True  # For server information
+class MyBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True  # Required to read message content
+        super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=intents)
 
-bot = commands.Bot(
-    command_prefix='!',
-    intents=intents,
-    help_command=None  # Disable the default help command
-)
+    async def on_ready(self):
+        logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
+        print(f'Logged in as {self.user} (ID: {self.user.id})')
+        print('------')
 
-@bot.event
-async def on_ready():
-    logger.info(f'Logged in as {bot.user.name} (ID: {bot.user.id})')
-    logger.info('------')
+    async def on_message(self, message):
+        if message.author.bot:  # Ignore messages from bots
+            return
 
-@bot.command(name='shopstart')
-async def start(ctx):
-    """Send a message when the command !shopstart is issued."""
-    await ctx.send('Hi! I am your shop assistant. How can I help you today?')
+        user_id = str(message.author.id)
+        message_content = message.content
 
-@bot.command(name='shophelp')
-async def help_command(ctx):
-    """Send a message when the command !shophelp is issued."""
-    help_text = """
-**Shop Bot Commands:**
-- `!shopstart`: Start interacting with the shop assistant
-- `!shophelp`: Show this help message
-
-**Regular Usage:**
-Just send messages to chat with the assistant. You can:
-- Ask about products
-- Send product images for identification
-- Place orders
-- Check order status
-"""
-    await ctx.send(help_text)
-
-@bot.event
-async def on_message(message):
-    # Don't respond to ourselves
-    if message.author == bot.user:
-        return
-
-    # Process commands first
-    await bot.process_commands(message)
-
-    # Then handle regular messages
-    try:
-        user_id = message.author.id
-        message_text = message.content
-        
-        # Check for attachments (images)
+        # Handle image attachments
+        image_processed = False
         if message.attachments:
             for attachment in message.attachments:
-                if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                if attachment.content_type.startswith('image/'):
                     image_url = attachment.url
-                    message_text = f"image_url: {image_url}"
                     update_user_memory(user_id, "[User sent an image]")
-                    break
-        else:
-            update_user_memory(user_id, message_text)
-        
-        # Get conversation history
-        conversation_history = get_conversation_history(user_id)
-        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-        
-        # Process the message through your existing handler
-        response, _ = handle_text_message(full_message, message_text)
-        
-        # Update memory with the response if it's not an image
-        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
-            update_user_memory(user_id, response)
-        
-        # Check if response contains an image URL
-        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-            try:
-                image_url = response.split(" - ")[-1].strip()
-                product_text = response.split(" - ")[0]
-                
-                # Download image
-                image_response = requests.get(image_url)
-                if image_response.status_code == 200:
-                    # Send image
-                    with BytesIO(image_response.content) as image_binary:
-                        await message.channel.send(
-                            content=product_text,
-                            file=discord.File(image_binary, filename='product.jpg')
-                        )
-                else:
+                    response, matched_product = handle_text_message(
+                        f"image_url: {image_url}", 
+                        "[Image attachment]"
+                    )
                     await message.channel.send(response)
-            except Exception as e:
-                logger.error(f"Error processing image URL: {str(e)}")
+                    if matched_product:
+                        update_user_memory(user_id, response)
+                    image_processed = True
+                    break # Process only the first image attachment
+
+        if message_content and not image_processed:
+            update_user_memory(user_id, message_content)
+            conversation_history = get_conversation_history(user_id)
+            full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_content}"
+            response, _ = handle_text_message(full_message, message_content)
+
+            if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+                try:
+                    image_url = response.split(" - ")[-1].strip()
+                    product_text = response.split(" - ")[0]
+
+                    image_response = requests.get(image_url)
+                    if image_response.status_code == 200:
+                        file = discord.File(BytesIO(image_response.content), filename="image.png")
+                        await message.channel.send(content=product_text, file=file)
+                    else:
+                        await message.channel.send(response)
+                except Exception as e:
+                    logger.error(f"Error processing image URL: {str(e)}")
+                    await message.channel.send(response)
+            else:
                 await message.channel.send(response)
-        else:
-            await message.channel.send(response)
-            
-    except Exception as e:
-        logger.error(f"Error in on_message: {str(e)}")
-        await message.channel.send("Sorry, I encountered an error processing your message.")
+                update_user_memory(user_id, response)
+        elif not image_processed and not message_content:
+            await message.channel.send("👍")
+
+        await self.process_commands(message)
 
 def main():
-    """Start the bot."""
     if not DISCORD_TOKEN:
         logger.error("DISCORD_TOKEN environment variable not set")
         return
     
+    bot = MyBot()
     bot.run(DISCORD_TOKEN)
 
 if __name__ == '__main__':
