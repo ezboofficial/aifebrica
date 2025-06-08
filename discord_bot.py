@@ -51,7 +51,7 @@ class DiscordBot(commands.Bot):
             return
 
         try:
-            user_id = str(message.author.id)
+            user_id = str(message.author.id) # Use string for user_id consistency
             message_text = message.content
             
             # Handle attachments (images)
@@ -59,12 +59,13 @@ class DiscordBot(commands.Bot):
             if message.attachments:
                 for attachment in message.attachments:
                     if 'image' in attachment.content_type:
-                        # Use proxy_url for reliable CDN access
-                        image_url = attachment.proxy_url
-                        message_text = f"image_url: {image_url}"
+                        image_data = BytesIO()
+                        await attachment.save(image_data)
+                        image_data.seek(0)
+                        message_text = "[User sent an image]"
                         update_user_memory(user_id, "[User sent an image]")
                         image_processed = True
-                        break  # Process only the first image attachment
+                        break # Process only the first image attachment
             
             if not image_processed:
                 update_user_memory(user_id, message_text)
@@ -74,14 +75,14 @@ class DiscordBot(commands.Bot):
             full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
             
             # Process the message through your existing handler
-            response, _ = handle_text_message(full_message, message_text)
+            response, _ = handle_text_message(full_message, message_text, image_data=image_data if image_processed else None)
             
             # Update memory with the response if it's not an image
-            if not (response.count(" - ") == 1 and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+            if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
                 update_user_memory(user_id, response)
             
             # Check if response contains an image URL
-            if response.count(" - ") == 1 and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+            if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                 try:
                     image_url = response.split(" - ")[-1].strip()
                     product_text = response.split(" - ")[0]
@@ -90,10 +91,7 @@ class DiscordBot(commands.Bot):
                     image_response = requests.get(image_url)
                     if image_response.status_code == 200:
                         # Send image
-                        await message.channel.send(
-                            product_text, 
-                            file=discord.File(BytesIO(image_response.content), 'image.png')
-                        )
+                        await message.channel.send(product_text, file=discord.File(BytesIO(image_response.content), 'image.png'))
                     else:
                         await message.channel.send(response)
                 except Exception as e:
