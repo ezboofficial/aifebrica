@@ -1,6 +1,5 @@
 import os
 import logging
-from logging import Filter
 from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from messageHandler import handle_text_message
@@ -12,6 +11,21 @@ from collections import deque
 # Load environment variables
 load_dotenv()
 
+# Custom logger class to filter out specific messages
+class FilteredLogger(logging.Logger):
+    def __init__(self, name, level=logging.NOTSET):
+        super().__init__(name, level)
+    
+    def handle(self, record):
+        # Skip processing if it's the conflict error we want to hide
+        if (record.levelno == logging.ERROR and 
+            "Conflict: terminated by other getUpdates request" in record.getMessage()):
+            return
+        super().handle(record)
+
+# Replace the default logger class with our filtered version
+logging.setLoggerClass(FilteredLogger)
+
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -21,13 +35,6 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
-
-# Custom filter to hide specific Telegram conflict errors
-class TelegramConflictFilter(Filter):
-    def filter(self, record):
-        # Filter out the specific conflict error message
-        return not (record.levelno == logging.ERROR and 
-                  "Conflict: terminated by other getUpdates request" in record.getMessage())
 
 # User memory for conversation history
 user_memory = {}
@@ -103,7 +110,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
-    logger.error(f'Update {update} caused error {context.error}')
+    # Skip logging if it's the conflict error
+    if not (isinstance(context.error, str) and 
+            "Conflict: terminated by other getUpdates request" in context.error):
+        logger.error(f'Update {update} caused error {context.error}')
 
 def main():
     """Start the bot."""
@@ -113,10 +123,6 @@ def main():
     
     # Create the Application
     application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    # Add the filter to hide conflict errors
-    conflict_filter = TelegramConflictFilter()
-    logging.getLogger('telegram.ext.Updater').addFilter(conflict_filter)
 
     # Add handlers
     application.add_handler(CommandHandler("start", start))
