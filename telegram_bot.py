@@ -50,9 +50,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message.photo:
             # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
-            # Use direct download URL with bot token
-            image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{photo_file.file_path}"
-            message_text = f"image_url: {image_url}"
+            image_data = BytesIO()
+            await photo_file.download_to_memory(image_data)
+            image_data.seek(0)
+            message_text = "[User sent an image]"
             update_user_memory(user_id, "[User sent an image]")
         else:
             update_user_memory(user_id, message_text)
@@ -62,14 +63,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
         
         # Process the message through your existing handler
-        response, _ = handle_text_message(full_message, message_text)
+        response, _ = handle_text_message(full_message, message_text, image_data=image_data if update.message.photo else None)
         
         # Update memory with the response if it's not an image
-        if not (response.count(" - ") == 1 and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+        if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
             update_user_memory(user_id, response)
         
         # Check if response contains an image URL
-        if response.count(" - ") == 1 and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             try:
                 image_url = response.split(" - ")[-1].strip()
                 product_text = response.split(" - ")[0]
