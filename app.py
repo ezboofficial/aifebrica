@@ -968,16 +968,3 @@ if __name__ == '__main__':
     
     # Start Telegram bot in main thread
     telegram_bot.main()
-
-
-
-def run_telegram_bot():
-    telegram_bot.start_bot()
-
-if __name__ == '__main__':
-    # Start Telegram bot in a separate thread
-    telegram_thread = threading.Thread(target=run_telegram_bot)
-    telegram_thread.start()
-    
-    # Start Flask app
-    app.run(debug=True, use_reloader=False)
