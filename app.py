@@ -984,5 +984,5 @@ if __name__ == '__main__':
     telegram_thread.daemon = True
     telegram_thread.start()
     
-    # Start Discord bot in main thread
-    discord_bot.main()
+    # Start Discord bot in the main thread
+    discord_bot.run_discord_bot()
