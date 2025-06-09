@@ -93,6 +93,7 @@ class DiscordBot(commands.Bot):
                         await message.channel.send(
                             product_text, 
                             file=discord.File(BytesIO(image_response.content), 'image.png')
+                    )
                     else:
                         await message.channel.send(response)
                 except Exception as e:
