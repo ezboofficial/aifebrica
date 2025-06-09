@@ -126,7 +126,7 @@ if __name__ == '__main__':
                 # Format the response similar to the Facebook page
                 response_text = (
                     f"I found a similar product in our catalog ({(matched_product[1]*100):.1f}% match):\n"
-                    f"{matched_product[0]["type"]} ({matched_product[0]["category"]})\n"
+                    f"{matched_product[0][\"type\"]} ({matched_product[0][\"category\"]})\n"
                     f"Sizes: {", ".join(matched_product[0]["size"])}\n"
                     f"Colors: {", ".join(matched_product[0]["color"])}\n"
                     f"Price: {matched_product[0]["price"]}{messageHandler.settings["currency"]}\n"
