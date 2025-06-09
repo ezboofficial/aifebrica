@@ -21,8 +21,9 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # New import for Telegram integration
-import discord_bot  # New import for Discord integration
+import telegram_bot  # Telegram integration
+import discord_bot  # Discord integration
+import instagram_bot  # Instagram integration
 
 load_dotenv()
 
@@ -204,6 +205,23 @@ def webhook():
                     elif not image_processed:
                         send_message(sender_id, "👍")
 
+    return "EVENT_RECEIVED", 200
+
+@app.route('/instagram-webhook', methods=['GET'])
+def verify_instagram():
+    return instagram_bot.verify_instagram_webhook(request)
+
+@app.route('/instagram-webhook', methods=['POST'])
+def instagram_webhook():
+    global AI_ENABLED
+    if not AI_ENABLED:
+        logger.info("AI is currently disabled - ignoring Instagram message")
+        return "EVENT_RECEIVED", 200
+        
+    data = request.get_json()
+    logger.info("Received Instagram data: %s", data)
+    
+    instagram_bot.handle_instagram_message(data)
     return "EVENT_RECEIVED", 200
     
 def send_message(recipient_id, message=None):
@@ -405,7 +423,7 @@ def order_lists():
         action = request.form.get('action')
         if action == 'update_status':
             order_index = int(request.form.get('order_index'))
-            new_status = request.form.get('status')
+            new_status = request.form.get('status'))
             messageHandler.update_order_status(order_index, new_status)
             flash("Order status updated successfully!", "success")
             update_github_repo_orders(messageHandler.get_orders())
@@ -418,7 +436,7 @@ def order_lists():
 def view_order(order_index):
     order = messageHandler.get_orders()[order_index]
     if request.method == 'POST':
-        new_status = request.form.get('status')
+        new_status = request.form.get('status'))
         messageHandler.update_order_status(order_index, new_status)
         flash("Order status updated successfully!", "success")
         update_github_repo_orders(messageHandler.get_orders())
@@ -583,7 +601,7 @@ def analyze_ai():
 @login_required
 def stock_lists():
     if request.method == 'POST':
-        action = request.form.get('action')
+        action = request.form.get('action'))
         if action == 'add':
             new_product = {
                 "category": request.form.get('category'),
@@ -647,7 +665,7 @@ def stock_lists():
 @login_required
 def ship_setup():
     if request.method == 'POST':
-        action = request.form.get('action')
+        action = request.form.get('action'))
         if action == 'add':
             new_record = {
                 'country': request.form.get('country'),
@@ -687,11 +705,11 @@ def ship_setup():
 @login_required
 def ai_settings():
     if request.method == 'POST':
-        new_shop_name = request.form.get('shop_name')
-        new_shop_number = request.form.get('shop_number')
-        new_shop_email = request.form.get('shop_email')
-        new_currency = request.form.get('selectedCurrency')
-        new_ai_name = request.form.get('ai_name')
+        new_shop_name = request.form.get('shop_name'))
+        new_shop_number = request.form.get('shop_number'))
+        new_shop_email = request.form.get('shop_email'))
+        new_currency = request.form.get('selectedCurrency'))
+        new_ai_name = request.form.get('ai_name'))
         cod_enabled = request.form.get('cod_enabled') == 'on'
         bkash_enabled = request.form.get('bkash_enabled') == 'on'
         nagad_enabled = request.form.get('nagad_enabled') == 'on'
@@ -701,8 +719,8 @@ def ai_settings():
             flash("You must enable at least one payment method.", "error")
             return redirect(url_for('ai_settings'))
         
-        service_products = request.form.get('service_products')
-        return_policy = request.form.get('return_policy')
+        service_products = request.form.get('service_products'))
+        return_policy = request.form.get('return_policy'))
         
         payment_methods = {
             "cod": cod_enabled,
@@ -736,7 +754,7 @@ def ai_settings():
 
 @app.route('/api', methods=['GET'])
 def api():
-    query = request.args.get('query')
+    query = request.args.get('query'))
     if not query:
         return jsonify({"error": "No query provided"}), 400
    
@@ -746,7 +764,7 @@ def api():
 
 @app.route('/api2', methods=['GET'])
 def api2():
-    user_query = request.args.get('query')
+    user_query = request.args.get('query'))
     if not user_query:
         return jsonify({"error": "No query provided"}), 400
    
@@ -759,9 +777,9 @@ def send_order_notification(order):
         # Get email configuration
         smtp_server = os.getenv("SMTP_SERVER")
         smtp_port = int(os.getenv("SMTP_PORT"))
-        smtp_username = os.getenv("SMTP_USERNAME")
-        smtp_password = os.getenv("SMTP_PASSWORD")
-        email_from = os.getenv("EMAIL_FROM")
+        smtp_username = os.getenv("SMTP_USERNAME"))
+        smtp_password = os.getenv("SMTP_PASSWORD"))
+        email_from = os.getenv("EMAIL_FROM"))
         
         # Get shop email from settings
         settings = messageHandler.get_settings()
@@ -940,7 +958,7 @@ def send_order_notification(order):
         Price: {order['price']}{settings['currency']}
         Delivery Charge: {order['delivery_charge']}{settings['currency']}
         Total: {order['total']}{settings['currency']}
-        Payment Method: {order['payment_method']}{f" (Txn ID: {order['transaction_id']})" if 'transaction_id' in order else ""}
+        Payment Method: {order['payment_method']}{f" (Txn ID: {order['transaction_id']})" if '[Method]" != "COD" else ""}
         Status: {order['status']}
         Date: {order['date']}
 
