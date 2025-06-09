@@ -35,7 +35,7 @@ def get_conversation_history(user_id):
 class DiscordBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
-        intents.message_content = True  # Required to read message content
+        intents.message_content = True
         super().__init__(command_prefix='!', intents=intents)
 
     async def on_ready(self):
@@ -43,10 +43,10 @@ class DiscordBot(commands.Bot):
         logger.info('------')
 
     async def on_message(self, message):
-        if message.author == self.user:  # Don't respond to ourselves
+        if message.author == self.user:
             return
 
-        if message.content.startswith('!'):  # Simple command handling example
+        if message.content.startswith('!'):
             await self.process_commands(message)
             return
 
@@ -60,13 +60,13 @@ class DiscordBot(commands.Bot):
                 for attachment in message.attachments:
                     if 'image' in attachment.content_type:
                         # Use proxy_url for reliable CDN access
-                        image_url = attachment.proxy_url
+                        image_url = attachment.url  # Changed from proxy_url to url for direct access
                         message_text = f"image_url: {image_url}"
                         update_user_memory(user_id, "[User sent an image]")
                         image_processed = True
-                        break  # Process only the first image attachment
+                        break
             
-            if not image_processed:
+            if not image_processed and message_text:
                 update_user_memory(user_id, message_text)
             
             # Get conversation history
@@ -74,7 +74,7 @@ class DiscordBot(commands.Bot):
             full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
             
             # Process the message through your existing handler
-            response, _ = handle_text_message(full_message, message_text)
+            response, matched_product = handle_text_message(full_message, message_text)
             
             # Update memory with the response if it's not an image
             if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
@@ -93,7 +93,6 @@ class DiscordBot(commands.Bot):
                         await message.channel.send(
                             product_text, 
                             file=discord.File(BytesIO(image_response.content), 'image.png')
-                        )
                     else:
                         await message.channel.send(response)
                 except Exception as e:
