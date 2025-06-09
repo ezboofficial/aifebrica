@@ -21,9 +21,9 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # Telegram integration
-import discord_bot  # Discord integration
-import instagram_bot  # Instagram integration
+import telegram_bot  # New import for Telegram integration
+import discord_bot  # New import for Discord integration
+import instagram_bot  # New import for Instagram integration
 
 load_dotenv()
 
@@ -213,7 +213,6 @@ def verify_instagram():
 
 @app.route('/instagram-webhook', methods=['POST'])
 def instagram_webhook():
-    global AI_ENABLED
     if not AI_ENABLED:
         logger.info("AI is currently disabled - ignoring Instagram message")
         return "EVENT_RECEIVED", 200
@@ -777,9 +776,9 @@ def send_order_notification(order):
         # Get email configuration
         smtp_server = os.getenv("SMTP_SERVER")
         smtp_port = int(os.getenv("SMTP_PORT"))
-        smtp_username = os.getenv("SMTP_USERNAME"))
-        smtp_password = os.getenv("SMTP_PASSWORD"))
-        email_from = os.getenv("EMAIL_FROM"))
+        smtp_username = os.getenv("SMTP_USERNAME")
+        smtp_password = os.getenv("SMTP_PASSWORD")
+        email_from = os.getenv("EMAIL_FROM")
         
         # Get shop email from settings
         settings = messageHandler.get_settings()
