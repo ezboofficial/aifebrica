@@ -51,13 +51,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Get the highest quality photo
             photo_file = await update.message.photo[-1].get_file()
             image_url = photo_file.file_path
+            logger.info(f"Received image with URL: {image_url}")
             
-            # Create the proper image URL format that messageHandler expects
-            message_text = f"image_url: https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{image_url}"
+            # Format the image URL for processing
+            formatted_image_url = f"image_url: {image_url}"
             update_user_memory(user_id, "[User sent an image]")
             
             # Process the image directly through messageHandler
-            response, matched_product = handle_text_message(message_text, "[Image attachment]")
+            response, matched_product = handle_text_message(formatted_image_url, "[Image attachment]")
+            logger.info(f"Image processing response: {response}")
             
             if matched_product:
                 update_user_memory(user_id, response)
@@ -65,8 +67,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Send the response
             if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                 try:
-                    image_url = response.split(" - ")[-1].strip()
                     product_text = response.split(" - ")[0]
+                    image_url = response.split(" - ")[-1].strip()
                     
                     # Download image
                     image_response = requests.get(image_url)
@@ -99,8 +101,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Check if response contains an image URL
         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
             try:
-                image_url = response.split(" - ")[-1].strip()
                 product_text = response.split(" - ")[0]
+                image_url = response.split(" - ")[-1].strip()
                 
                 # Download image
                 image_response = requests.get(image_url)
