@@ -61,41 +61,86 @@ class DiscordBot(commands.Bot):
                         image_url = attachment.url
                         message_text = f"image_url: {image_url}"
                         update_user_memory(user_id, "[User sent an image]")
-                        break
+                        
+                        # Process the image through your existing handler
+                        response, matched_product = handle_text_message(message_text, "[Image attachment]")
+                        
+                        if matched_product:
+                            # Format the response exactly like Facebook
+                            response = (
+                                f"I found a similar product in our catalog ({(matched_product[1]*100):.1f}% match):\n"
+                                f"{matched_product[0]['type']} ({matched_product[0]['category']})\n"
+                                f"Sizes: {', '.join(matched_product[0]['size'])}\n"
+                                f"Colors: {', '.join(matched_product[0]['color'])}\n"
+                                f"Price: {matched_product[0]['price']}{settings['currency']}\n"
+                                f"Image: {matched_product[0]['image']}"
+                            )
+                            update_user_memory(user_id, response)
+                            
+                            # Check if response contains an image URL
+                            if matched_product[0]['image']:
+                                try:
+                                    image_response = requests.get(matched_product[0]['image'])
+                                    if image_response.status_code == 200:
+                                        # Send image with product details
+                                        await message.channel.send(
+                                            content=(
+                                                f"I found a similar product in our catalog ({(matched_product[1]*100):.1f}% match):\n"
+                                                f"{matched_product[0]['type']} ({matched_product[0]['category']})\n"
+                                                f"Sizes: {', '.join(matched_product[0]['size'])}\n"
+                                                f"Colors: {', '.join(matched_product[0]['color'])}\n"
+                                                f"Price: {matched_product[0]['price']}{settings['currency']}"
+                                            ),
+                                            file=discord.File(BytesIO(image_response.content), 'product.png')
+                                        )
+                                        return
+                                except Exception as e:
+                                    logger.error(f"Error processing product image: {str(e)}")
+                            
+                            await message.channel.send(response)
+                            return
+                        else:
+                            response = "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image."
+                            await message.channel.send(response)
+                            return
             
-            # Get conversation history
-            conversation_history = get_conversation_history(user_id)
-            full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-            
-            # Process the message through your existing handler
-            response, matched_product = handle_text_message(full_message, message_text)
-            
-            # Update memory with the response if it's not an image
-            if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
-                update_user_memory(user_id, response)
-            
-            # Check if response contains an image URL
-            if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                try:
-                    image_url = response.split(" - ")[-1].strip()
-                    product_text = response.split(" - ")[0]
-                    
-                    # Download image
-                    image_response = requests.get(image_url)
-                    if image_response.status_code == 200:
-                        # Send image
-                        await message.channel.send(
-                            product_text, 
-                            file=discord.File(BytesIO(image_response.content), 'image.png')
-                        )
-                    else:
-                        await message.channel.send(response)
-                except Exception as e:
-                    logger.error(f"Error processing image URL for Discord: {str(e)}")
-                    await message.channel.send(response)
-            else:
-                await message.channel.send(response)
+            # For text messages
+            if message_text:
+                update_user_memory(user_id, message_text)
                 
+                # Get conversation history
+                conversation_history = get_conversation_history(user_id)
+                full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                
+                # Process the message through your existing handler
+                response, matched_product = handle_text_message(full_message, message_text)
+                
+                # Update memory with the response if it's not an image
+                if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
+                    update_user_memory(user_id, response)
+                
+                # Check if response contains an image URL
+                if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+                    try:
+                        image_url = response.split(" - ")[-1].strip()
+                        product_text = response.split(" - ")[0]
+                        
+                        # Download image
+                        image_response = requests.get(image_url)
+                        if image_response.status_code == 200:
+                            # Send image
+                            await message.channel.send(
+                                product_text, 
+                                file=discord.File(BytesIO(image_response.content), 'product.png')
+                            )
+                        else:
+                            await message.channel.send(response)
+                    except Exception as e:
+                        logger.error(f"Error processing image URL for Discord: {str(e)}")
+                        await message.channel.send(response)
+                else:
+                    await message.channel.send(response)
+                    
         except Exception as e:
             logger.error(f"Error in Discord on_message: {str(e)}")
             await message.channel.send("Sorry, I encountered an error processing your message.")
