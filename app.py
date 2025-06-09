@@ -423,7 +423,7 @@ def order_lists():
         action = request.form.get('action')
         if action == 'update_status':
             order_index = int(request.form.get('order_index'))
-            new_status = request.form.get('status'))
+            new_status = request.form.get('status')
             messageHandler.update_order_status(order_index, new_status)
             flash("Order status updated successfully!", "success")
             update_github_repo_orders(messageHandler.get_orders())
@@ -436,7 +436,7 @@ def order_lists():
 def view_order(order_index):
     order = messageHandler.get_orders()[order_index]
     if request.method == 'POST':
-        new_status = request.form.get('status'))
+        new_status = request.form.get('status')
         messageHandler.update_order_status(order_index, new_status)
         flash("Order status updated successfully!", "success")
         update_github_repo_orders(messageHandler.get_orders())
@@ -601,7 +601,7 @@ def analyze_ai():
 @login_required
 def stock_lists():
     if request.method == 'POST':
-        action = request.form.get('action'))
+        action = request.form.get('action')
         if action == 'add':
             new_product = {
                 "category": request.form.get('category'),
@@ -665,7 +665,7 @@ def stock_lists():
 @login_required
 def ship_setup():
     if request.method == 'POST':
-        action = request.form.get('action'))
+        action = request.form.get('action')
         if action == 'add':
             new_record = {
                 'country': request.form.get('country'),
@@ -705,11 +705,11 @@ def ship_setup():
 @login_required
 def ai_settings():
     if request.method == 'POST':
-        new_shop_name = request.form.get('shop_name'))
-        new_shop_number = request.form.get('shop_number'))
-        new_shop_email = request.form.get('shop_email'))
-        new_currency = request.form.get('selectedCurrency'))
-        new_ai_name = request.form.get('ai_name'))
+        new_shop_name = request.form.get('shop_name')
+        new_shop_number = request.form.get('shop_number')
+        new_shop_email = request.form.get('shop_email')
+        new_currency = request.form.get('selectedCurrency')
+        new_ai_name = request.form.get('ai_name')
         cod_enabled = request.form.get('cod_enabled') == 'on'
         bkash_enabled = request.form.get('bkash_enabled') == 'on'
         nagad_enabled = request.form.get('nagad_enabled') == 'on'
@@ -719,8 +719,8 @@ def ai_settings():
             flash("You must enable at least one payment method.", "error")
             return redirect(url_for('ai_settings'))
         
-        service_products = request.form.get('service_products'))
-        return_policy = request.form.get('return_policy'))
+        service_products = request.form.get('service_products')
+        return_policy = request.form.get('return_policy')
         
         payment_methods = {
             "cod": cod_enabled,
@@ -754,7 +754,7 @@ def ai_settings():
 
 @app.route('/api', methods=['GET'])
 def api():
-    query = request.args.get('query'))
+    query = request.args.get('query')
     if not query:
         return jsonify({"error": "No query provided"}), 400
    
@@ -764,7 +764,7 @@ def api():
 
 @app.route('/api2', methods=['GET'])
 def api2():
-    user_query = request.args.get('query'))
+    user_query = request.args.get('query')
     if not user_query:
         return jsonify({"error": "No query provided"}), 400
    
@@ -958,7 +958,7 @@ def send_order_notification(order):
         Price: {order['price']}{settings['currency']}
         Delivery Charge: {order['delivery_charge']}{settings['currency']}
         Total: {order['total']}{settings['currency']}
-        Payment Method: {order['payment_method']}{f" (Txn ID: {order['transaction_id']})" if '[Method]" != "COD" else ""}
+        Payment Method: {order['payment_method']}{f" (Txn ID: {order['transaction_id']})" if 'transaction_id' in order else ""}
         Status: {order['status']}
         Date: {order['date']}
 
