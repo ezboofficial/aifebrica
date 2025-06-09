@@ -55,19 +55,13 @@ class DiscordBot(commands.Bot):
             message_text = message.content
             
             # Handle attachments (images)
-            image_processed = False
             if message.attachments:
                 for attachment in message.attachments:
                     if 'image' in attachment.content_type:
-                        # Use proxy_url for reliable CDN access
-                        image_url = attachment.url  # Changed from proxy_url to url for direct access
+                        image_url = attachment.url
                         message_text = f"image_url: {image_url}"
                         update_user_memory(user_id, "[User sent an image]")
-                        image_processed = True
                         break
-            
-            if not image_processed and message_text:
-                update_user_memory(user_id, message_text)
             
             # Get conversation history
             conversation_history = get_conversation_history(user_id)
@@ -93,7 +87,7 @@ class DiscordBot(commands.Bot):
                         await message.channel.send(
                             product_text, 
                             file=discord.File(BytesIO(image_response.content), 'image.png')
-                    )
+                        )
                     else:
                         await message.channel.send(response)
                 except Exception as e:
