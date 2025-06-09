@@ -55,84 +55,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Create the proper image URL format that messageHandler expects
             message_text = f"image_url: https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{image_url}"
             update_user_memory(user_id, "[User sent an image]")
-            
-            # Process the image through your existing handler
-            response, matched_product = handle_text_message(message_text, "[Image attachment]")
-            
-            if matched_product:
-                # Format the response exactly like Facebook
-                response = (
-                    f"I found a similar product in our catalog ({(matched_product[1]*100):.1f}% match):\n"
-                    f"{matched_product[0]['type']} ({matched_product[0]['category']})\n"
-                    f"Sizes: {', '.join(matched_product[0]['size'])}\n"
-                    f"Colors: {', '.join(matched_product[0]['color'])}\n"
-                    f"Price: {matched_product[0]['price']}{settings['currency']}\n"
-                    f"Image: {matched_product[0]['image']}"
-                )
-                update_user_memory(user_id, response)
-                
-                # Check if response contains an image URL
-                if matched_product[0]['image']:
-                    try:
-                        image_response = requests.get(matched_product[0]['image'])
-                        if image_response.status_code == 200:
-                            # Send image with product details as caption
-                            await update.message.reply_photo(
-                                photo=BytesIO(image_response.content),
-                                caption=(
-                                    f"I found a similar product in our catalog ({(matched_product[1]*100):.1f}% match):\n"
-                                    f"{matched_product[0]['type']} ({matched_product[0]['category']})\n"
-                                    f"Sizes: {', '.join(matched_product[0]['size'])}\n"
-                                    f"Colors: {', '.join(matched_product[0]['color'])}\n"
-                                    f"Price: {matched_product[0]['price']}{settings['currency']}"
-                                )
-                            )
-                            return
-                    except Exception as e:
-                        logger.error(f"Error processing product image: {str(e)}")
-                
-                await update.message.reply_text(response)
-                return
-            else:
-                response = "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image."
-                await update.message.reply_text(response)
-                return
         
-        # For text messages
-        if message_text:
-            # Get conversation history
-            conversation_history = get_conversation_history(user_id)
-            full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-            
-            # Process the message through your existing handler
-            response, matched_product = handle_text_message(full_message, message_text)
-            
-            # Update memory with the response if it's not an image
-            if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
-                update_user_memory(user_id, response)
-            
-            # Check if response contains an image URL
-            if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                try:
-                    image_url = response.split(" - ")[-1].strip()
-                    product_text = response.split(" - ")[0]
-                    
-                    # Download image
-                    image_response = requests.get(image_url)
-                    if image_response.status_code == 200:
-                        # Send image
-                        await update.message.reply_photo(
-                            photo=BytesIO(image_response.content),
-                            caption=product_text
-                        )
-                    else:
-                        await update.message.reply_text(response)
-                except Exception as e:
-                    logger.error(f"Error processing image URL: {str(e)}")
-                    await update.message.reply_text(response)
-            else:
-                await update.message.reply_text(response)
-                
+        # Get conversation history
+        conversation_history = get_conversation_history(user_id)
+        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+        
+        # Process the message through your existing handler
+        response, matched_product = handle_text_message(full_message, message_text)
+        
+        # Update memory with the response if it's not an image
+        if not (" - http" in response and any(ext in response.lower() for ext in [".jpg", ".jpeg", ".png", ".gif"])):
+            update_user_memory(user_id, response)
+
+        if matched_product:
+            # Format the response similar to the Facebook page
+            response_text = (
+                f"I found a similar product in our catalog ({(matched_product[1]*100):.1f}% match):\n"
+                f"{matched_product[0]["type"]} ({matched_product[0]["category"]})\n"
+                f"Sizes: {", ".join(matched_product[0]["size"])}\n"
+                f"Colors: {", ".join(matched_product[0]["color"])}\n"
+                f"Price: {matched_product[0]["price"]}{messageHandler.settings["currency"]}\n"
+            )
+            image_url = matched_product[0]["image"]
+
+            try:
+                image_response = requests.get(image_url)
+                if image_response.status_code == 200:
+                    await update.message.reply_photo(
+                        photo=BytesIO(image_response.content),
+                        caption=response_text
+                    )
+                else:
+                    await update.message.reply_text(response_text + f"\nImage URL: {image_url}")
+            except Exception as e:
+                logger.error(f"Error sending image: {str(e)}")
+                await update.message.reply_text(response_text + f"\nImage URL: {image_url}")
+        else:
+            await update.message.reply_text(response)            
     except Exception as e:
         logger.error(f"Error in handle_message: {str(e)}")
         await update.message.reply_text("Sorry, I encountered an error processing your message.")
