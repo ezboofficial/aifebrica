@@ -374,7 +374,7 @@ def send_instagram_message(recipient_id, message=None):
 
     try:
         response = requests.post(
-            "https://graph.facebook.com/v18.0/me/messages",
+            "https://graph.facebook.com/v21.0/me/messages",
             params=params,
             headers=headers,
             json=data
@@ -382,12 +382,14 @@ def send_instagram_message(recipient_id, message=None):
         if response.status_code == 200:
             logger.info(f"Instagram message sent to {recipient_id}")
         else:
+            # Skip logging for "No matching user found" error
             error_data = response.json()
-            logger.error(f"Failed to send Instagram message: {error_data}")
-        return response
+            if not (response.status_code == 400 and 
+                   error_data.get("error", {}).get("code") == 100 and 
+                   error_data.get("error", {}).get("error_subcode") == 2018001):
+                logger.error(f"Failed to send Instagram message: {response.text}")
     except Exception as e:
         logger.error(f"Error sending Instagram message: {str(e)}")
-        return None
 
 def send_instagram_image(recipient_id, image_url):
     params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
@@ -408,7 +410,7 @@ def send_instagram_image(recipient_id, image_url):
 
     try:
         response = requests.post(
-            "https://graph.facebook.com/v18.0/me/messages",
+            "https://graph.facebook.com/v21.0/me/messages",
             params=params,
             headers=headers,
             json=data
@@ -416,12 +418,14 @@ def send_instagram_image(recipient_id, image_url):
         if response.status_code == 200:
             logger.info(f"Instagram image sent to {recipient_id}")
         else:
+            # Skip logging for "No matching user found" error
             error_data = response.json()
-            logger.error(f"Failed to send Instagram image: {error_data}")
-        return response
+            if not (response.status_code == 400 and 
+                   error_data.get("error", {}).get("code") == 100 and 
+                   error_data.get("error", {}).get("error_subcode") == 2018001):
+                logger.error(f"Failed to send Instagram image: {response.text}")
     except Exception as e:
         logger.error(f"Error sending Instagram image: {str(e)}")
-        return None
 
 def update_github_repo(products):
     try:
