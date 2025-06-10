@@ -40,10 +40,15 @@ GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
+# Instagram Integration
+INSTAGRAM_VERIFY_TOKEN = os.getenv("INSTAGRAM_VERIFY_TOKEN")
+INSTAGRAM_ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
 
 user_memory = {}
+instagram_user_memory = {}  # Separate memory for Instagram users
 AI_ENABLED = True
 
 def login_required(f):
@@ -65,6 +70,14 @@ def update_user_memory(user_id, message):
 
 def get_conversation_history(user_id):
     return "\n".join(user_memory.get(user_id, []))
+
+def update_instagram_user_memory(user_id, message):
+    if user_id not in instagram_user_memory:
+        instagram_user_memory[user_id] = deque(maxlen=20)
+    instagram_user_memory[user_id].append(message)
+
+def get_instagram_conversation_history(user_id):
+    return "\n".join(instagram_user_memory.get(user_id, []))
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -272,6 +285,147 @@ def send_image(recipient_id, image_url):
                 logger.error(f"Failed to send image: {response.text}")
     except Exception as e:
         logger.error(f"Error sending image: {str(e)}")
+
+# Instagram Webhook Routes
+@app.route('/instagram/webhook', methods=['GET'])
+def instagram_verify():
+    token_sent = request.args.get("hub.verify_token")
+    if token_sent == INSTAGRAM_VERIFY_TOKEN:
+        logger.info("Instagram webhook verification successful.")
+        return request.args.get("hub.challenge", "")
+    logger.error("Instagram webhook verification failed: invalid verify token.")
+    return "Verification failed", 403
+
+@app.route('/instagram/webhook', methods=['POST'])
+def instagram_webhook():
+    global AI_ENABLED
+    if not AI_ENABLED:
+        logger.info("AI is currently disabled - ignoring Instagram message")
+        return "EVENT_RECEIVED", 200
+        
+    data = request.get_json()
+    logger.info("Received Instagram data: %s", data)
+
+    if data.get("object") == "instagram":
+        for entry in data["entry"]:
+            for event in entry.get("messaging", []):
+                if "message" in event:
+                    sender_id = event["sender"]["id"]
+                    message_text = event["message"].get("text")
+                    message_attachments = event["message"].get("attachments")
+                    
+                    # Handle image attachments
+                    image_processed = False
+                    if message_attachments:
+                        for attachment in message_attachments:
+                            if attachment.get("type") == "image":
+                                image_url = attachment["payload"].get("url")
+                                if image_url:
+                                    update_instagram_user_memory(sender_id, "[User sent an image]")
+                                    response, matched_product = messageHandler.handle_text_message(
+                                        f"image_url: {image_url}", 
+                                        "[Image attachment]"
+                                    )
+                                    send_instagram_message(sender_id, response)
+                                    if matched_product:
+                                        update_instagram_user_memory(sender_id, response)
+                                    image_processed = True
+                    
+                    # Handle text messages
+                    if message_text and not image_processed:
+                        update_instagram_user_memory(sender_id, message_text)
+                        conversation_history = get_instagram_conversation_history(sender_id)
+                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                        response, _ = messageHandler.handle_text_message(full_message, message_text)
+                        
+                        # Handle image responses
+                        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+                            try:
+                                image_url = response.split(" - ")[-1].strip()
+                                if image_url.startswith(('http://', 'https://')):
+                                    send_instagram_image(sender_id, image_url)
+                                    product_text = response.split(" - ")[0]
+                                    if product_text:
+                                        send_instagram_message(sender_id, product_text)
+                                        update_instagram_user_memory(sender_id, product_text)
+                            except Exception as e:
+                                logger.error(f"Error processing Instagram image URL: {str(e)}")
+                                send_instagram_message(sender_id, response)
+                                update_instagram_user_memory(sender_id, response)
+                        else:
+                            send_instagram_message(sender_id, response)
+                            update_instagram_user_memory(sender_id, response)
+                    elif not image_processed:
+                        send_instagram_message(sender_id, "👍")
+
+    return "EVENT_RECEIVED", 200
+
+def send_instagram_message(recipient_id, message=None):
+    params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
+    headers = {"Content-Type": "application/json"}
+    
+    if not isinstance(message, str):
+        message = str(message) if message else "An error occurred while processing your request."
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message},
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Instagram message sent to {recipient_id}")
+        else:
+            # Skip logging for "No matching user found" error
+            error_data = response.json()
+            if not (response.status_code == 400 and 
+                   error_data.get("error", {}).get("code") == 100 and 
+                   error_data.get("error", {}).get("error_subcode") == 2018001):
+                logger.error(f"Failed to send Instagram message: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending Instagram message: {str(e)}")
+
+def send_instagram_image(recipient_id, image_url):
+    params = {"access_token": INSTAGRAM_ACCESS_TOKEN}
+    headers = {"Content-Type": "application/json"}
+    
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url,
+                    "is_reusable": True
+                }
+            }
+        }
+    }
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v21.0/me/messages",
+            params=params,
+            headers=headers,
+            json=data
+        )
+        if response.status_code == 200:
+            logger.info(f"Instagram image sent to {recipient_id}")
+        else:
+            # Skip logging for "No matching user found" error
+            error_data = response.json()
+            if not (response.status_code == 400 and 
+                   error_data.get("error", {}).get("code") == 100 and 
+                   error_data.get("error", {}).get("error_subcode") == 2018001):
+                logger.error(f"Failed to send Instagram image: {response.text}")
+    except Exception as e:
+        logger.error(f"Error sending Instagram image: {str(e)}")
 
 def update_github_repo(products):
     try:
