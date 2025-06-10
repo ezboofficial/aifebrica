@@ -1,10 +1,11 @@
 import os
 import logging
 import requests
-from dotenv import load_dotenv
 from collections import deque
 from messageHandler import handle_text_message
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -91,8 +92,6 @@ def send_image(recipient_id, image_url):
 def handle_instagram_message(sender_id, message_text, attachments=None):
     """Process incoming Instagram messages"""
     try:
-        update_user_memory(sender_id, message_text)
-        
         # Handle image attachments
         if attachments and 'image' in attachments.get('type', ''):
             image_url = attachments.get('payload', {}).get('url', '')
@@ -116,6 +115,9 @@ def handle_instagram_message(sender_id, message_text, attachments=None):
                 else:
                     send_message(sender_id, response)
                 return
+        
+        # Update memory with the new message
+        update_user_memory(sender_id, message_text)
         
         # Get conversation history
         conversation_history = get_conversation_history(sender_id)
@@ -172,6 +174,11 @@ def create_instagram_app():
                         message_text = message.get('text')
                         attachments = message.get('attachments', [{}])[0] if message.get('attachments') else None
                         
+                        # Skip echo messages (messages sent by your own bot)
+                        if message.get('is_echo'):
+                            logger.info("Skipping echo message")
+                            continue
+                            
                         if message_text or attachments:
                             handle_instagram_message(sender_id, message_text or '', attachments)
         
