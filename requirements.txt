@@ -12,3 +12,4 @@ Pillow==10.0.1
 scikit-image==0.21.0
 python-telegram-bot==20.3
 discord.py==2.3.2
+facebook-business==16.0.1
