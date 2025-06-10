@@ -23,6 +23,7 @@ import json
 import threading
 import telegram_bot  # New import for Telegram integration
 import discord_bot  # New import for Discord integration
+import instagram_bot  # New import for Instagram integration
 
 load_dotenv()
 
@@ -205,6 +206,48 @@ def webhook():
                         send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
+
+@app.route('/instagram-webhook', methods=['GET'])
+def verify_instagram_webhook():
+    """Verify Instagram webhook subscription"""
+    mode = request.args.get('hub.mode')
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    
+    if mode and token:
+        if mode == 'subscribe' and token == os.getenv("INSTAGRAM_VERIFY_TOKEN"):
+            logger.info("Instagram webhook verified successfully")
+            return challenge, 200
+        else:
+            logger.error("Instagram webhook verification failed")
+            return "Verification failed", 403
+    return "Missing parameters", 400
+
+@app.route('/instagram-webhook', methods=['POST'])
+def handle_instagram_webhook():
+    """Handle incoming Instagram messages"""
+    try:
+        data = request.get_json()
+        logger.info(f"Received Instagram webhook data: {data}")
+        
+        if data.get("object") == "instagram":
+            for entry in data.get("entry", []):
+                for messaging in entry.get("messaging", []):
+                    sender_id = messaging["sender"]["id"]
+                    if "message" in messaging:
+                        message_text = messaging["message"].get("text")
+                        message_attachments = messaging["message"].get("attachments", [])
+                        
+                        instagram_bot.handle_instagram_message(
+                            sender_id, 
+                            message_text, 
+                            message_attachments
+                        )
+        
+        return "EVENT_RECEIVED", 200
+    except Exception as e:
+        logger.error(f"Error processing Instagram webhook: {str(e)}")
+        return "ERROR", 500
     
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
@@ -981,6 +1024,11 @@ if __name__ == '__main__':
     discord_thread = threading.Thread(target=discord_bot.run_discord_bot)
     discord_thread.daemon = True
     discord_thread.start()
+    
+    # Start Instagram bot in a separate thread
+    instagram_thread = threading.Thread(target=instagram_bot.run_instagram_bot)
+    instagram_thread.daemon = True
+    instagram_thread.start()
     
     # Start Telegram bot in main thread
     telegram_bot.main()
