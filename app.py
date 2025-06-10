@@ -21,8 +21,8 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # New import for Telegram integration
-import discord_bot  # New import for Discord integration
+import telegram_bot
+import discord_bot
 from facebook_business.api import FacebookAdsApi
 from facebook_business.adobjects.instagramuser import InstagramUser
 from facebook_business.adobjects.page import Page
@@ -32,8 +32,6 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
-
-FacebookAdsApi.init(access_token=PAGE_ACCESS_TOKEN)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
@@ -45,6 +43,9 @@ GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+# Initialize Facebook/Instagram API
+FacebookAdsApi.init(access_token=PAGE_ACCESS_TOKEN)
 
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
@@ -125,22 +126,22 @@ def toggle_ai():
     AI_ENABLED = not AI_ENABLED
     return jsonify({'status': 'success', 'ai_enabled': AI_ENABLED})
 
-@app.route("/webhook", methods=["GET"])
+@app.route('/webhook', methods=['GET'])
 def verify():
     token_sent = request.args.get("hub.verify_token")
     if token_sent == VERIFY_TOKEN:
         # Subscribe to Instagram messaging events
         try:
-            page = Page(os.getenv("PAGE_ID")) # Assuming PAGE_ID is in your .env
+            page = Page(PAGE_ID)
             page.create_subscribed_app(
                 subscribed_fields=[
-                    "messages",
-                    "messaging_postbacks",
-                    "messaging_optins",
-                    "messaging_referrals",
-                    "messaging_handovers",
-                    "messaging_fblogin_account_linking",
-                    "instagram"
+                    'messages',
+                    'messaging_postbacks',
+                    'messaging_optins',
+                    'messaging_referrals',
+                    'messaging_handovers',
+                    'messaging_fblogin_account_linking',
+                    'instagram'
                 ]
             )
             logger.info("Subscribed to Instagram messaging events")
@@ -194,7 +195,7 @@ def webhook():
                                         update_user_memory(sender_id, response)
                     continue
                 
-                # Existing Facebook Messenger handling code remains the same
+                # Existing Facebook Messenger handling
                 if "message" in event:
                     sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
@@ -259,7 +260,52 @@ def webhook():
                         send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
-    
+
+def send_instagram_message(recipient_id, message):
+    """Send a message to Instagram user"""
+    try:
+        page = Page(PAGE_ID)
+        
+        if " - http" in message and any(ext in message.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+            product_text = message.split(" - ")[0]
+            image_url = message.split(" - ")[-1].strip()
+            
+            # Send text first
+            page.api_call(
+                'POST',
+                page.get_id() + '/messages',
+                params={
+                    'recipient': {'id': recipient_id},
+                    'message': {'text': product_text},
+                    'access_token': PAGE_ACCESS_TOKEN
+                }
+            )
+            
+            # Then send image
+            page.api_call(
+                'POST',
+                page.get_id() + '/messages',
+                params={
+                    'recipient': {'id': recipient_id},
+                    'message': {'attachment': {'type': 'image', 'payload': {'url': image_url}}},
+                    'access_token': PAGE_ACCESS_TOKEN
+                }
+            )
+        else:
+            page.api_call(
+                'POST',
+                page.get_id() + '/messages',
+                params={
+                    'recipient': {'id': recipient_id},
+                    'message': {'text': message},
+                    'access_token': PAGE_ACCESS_TOKEN
+                }
+            )
+            
+        logger.info(f"Instagram message sent to {recipient_id}")
+    except Exception as e:
+        logger.error(f"Error sending Instagram message: {str(e)}")
+
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
     headers = {"Content-Type": "application/json"}
@@ -282,7 +328,6 @@ def send_message(recipient_id, message=None):
         if response.status_code == 200:
             logger.info(f"Message sent to {recipient_id}")
         else:
-            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -318,7 +363,6 @@ def send_image(recipient_id, image_url):
         if response.status_code == 200:
             logger.info(f"Image sent to {recipient_id}")
         else:
-            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -1038,54 +1082,3 @@ if __name__ == '__main__':
     
     # Start Telegram bot in main thread
     telegram_bot.main()
-
-
-def send_instagram_message(recipient_id, message):
-    """Send a message to Instagram user"""
-    try:
-        # Instagram messages are sent through the Page API
-        page = Page(PAGE_ID)  # Your Facebook Page ID
-        instagram_user = InstagramUser(recipient_id)
-        
-        if " - http" in message and any(ext in message.lower() for ext in [".jpg", ".jpeg", ".png", ".gif"]):
-            # Handle image messages
-            product_text = message.split(" - ")[0]
-            image_url = message.split(" - ")[-1].strip()
-            
-            # Send text message first if product_text exists
-            if product_text:
-                page.api_call(
-                    "POST",
-                    page.get_id() + "/messages",
-                    params={
-                        "recipient": {"id": recipient_id},
-                        "message": {"text": product_text},
-                        "access_token": PAGE_ACCESS_TOKEN
-                    }
-                )
-            
-            # Then send the image
-            page.api_call(
-                "POST",
-                page.get_id() + "/messages",
-                params={
-                    "recipient": {"id": recipient_id},
-                    "message": {"attachment": {"type": "image", "payload": {"url": image_url}}},
-                    "access_token": PAGE_ACCESS_TOKEN
-                }
-            )
-        else:
-            # Text message
-            page.api_call(
-                "POST",
-                page.get_id() + "/messages",
-                params={
-                    "recipient": {"id": recipient_id},
-                    "message": {"text": message},
-                    "access_token": PAGE_ACCESS_TOKEN
-                }
-            )
-            
-        logger.info(f"Instagram message sent to {recipient_id}")
-    except Exception as e:
-        logger.error(f"Error sending Instagram message: {str(e)}")
