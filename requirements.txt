@@ -12,5 +12,4 @@ Pillow==10.0.1
 scikit-image==0.21.0
 python-telegram-bot==20.3
 discord.py==2.3.2
-python-instagram==1.0.0
-facebook-sdk==3.1.0
+instagram-business-api==1.0.0
