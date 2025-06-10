@@ -21,8 +21,9 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # New import for Telegram integration
-import discord_bot  # New import for Discord integration
+import telegram_bot
+import discord_bot
+import instagram_bot  # New import for Instagram integration
 
 load_dotenv()
 
@@ -981,6 +982,11 @@ if __name__ == '__main__':
     discord_thread = threading.Thread(target=discord_bot.run_discord_bot)
     discord_thread.daemon = True
     discord_thread.start()
+    
+    # Start Instagram bot in a separate thread
+    instagram_thread = threading.Thread(target=instagram_bot.run_instagram_bot)
+    instagram_thread.daemon = True
+    instagram_thread.start()
     
     # Start Telegram bot in main thread
     telegram_bot.main()
