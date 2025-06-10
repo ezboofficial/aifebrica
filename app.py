@@ -23,7 +23,6 @@ import json
 import threading
 import telegram_bot  # New import for Telegram integration
 import discord_bot  # New import for Discord integration
-import instagram_bot  # New import for Instagram integration
 
 load_dotenv()
 
@@ -205,22 +204,6 @@ def webhook():
                     elif not image_processed:
                         send_message(sender_id, "👍")
 
-    return "EVENT_RECEIVED", 200
-
-@app.route('/instagram-webhook', methods=['GET'])
-def verify_instagram():
-    return instagram_bot.verify_instagram_webhook(request)
-
-@app.route('/instagram-webhook', methods=['POST'])
-def instagram_webhook():
-    if not AI_ENABLED:
-        logger.info("AI is currently disabled - ignoring Instagram message")
-        return "EVENT_RECEIVED", 200
-        
-    data = request.get_json()
-    logger.info("Received Instagram data: %s", data)
-    
-    instagram_bot.handle_instagram_message(data)
     return "EVENT_RECEIVED", 200
     
 def send_message(recipient_id, message=None):
