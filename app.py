@@ -130,23 +130,31 @@ def toggle_ai():
 def verify():
     token_sent = request.args.get("hub.verify_token")
     if token_sent == VERIFY_TOKEN:
-        # Subscribe to Instagram messaging events
+        # Subscribe to Instagram messaging events (corrected version)
         try:
             page = Page(PAGE_ID)
-            page.create_subscribed_app(
-                subscribed_fields=[
-                    'messages',
-                    'messaging_postbacks',
-                    'messaging_optins',
-                    'messaging_referrals',
-                    'messaging_handovers',
-                    'messaging_fblogin_account_linking',
-                    'instagram'
-                ]
-            )
-            logger.info("Subscribed to Instagram messaging events")
+            # First get current subscriptions
+            current_subs = page.get_subscribed_apps()
+            required_fields = {
+                'messages',
+                'messaging_postbacks', 
+                'messaging_optins',
+                'messaging_referrals',
+                'messaging_handovers',
+                'messaging_fblogin_account_linking',
+                'instagram'
+            }
+            
+            # Check if we need to update subscriptions
+            if not all(field in current_subs.get('data', [{}])[0].get('subscribed_fields', []) 
+                      for field in required_fields):
+                # Update subscriptions
+                page.update_subscribed_apps(
+                    subscribed_fields=list(required_fields)
+                )
+                logger.info("Updated Instagram messaging subscriptions")
         except Exception as e:
-            logger.error(f"Error subscribing to Instagram events: {str(e)}")
+            logger.error(f"Error updating Instagram subscriptions: {str(e)}")
             
         logger.info("Webhook verification successful.")
         return request.args.get("hub.challenge", "")
