@@ -21,8 +21,8 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot
-import discord_bot
+import telegram_bot  # New import for Telegram integration
+import discord_bot  # New import for Discord integration
 
 load_dotenv()
 
@@ -141,14 +141,8 @@ def webhook():
     if data.get("object") == "page":
         for entry in data["entry"]:
             for event in entry.get("messaging", []):
-                # Handle both Facebook and Instagram messages
-                sender_id = event["sender"]["id"]
-                is_instagram = "instagram" in sender_id.lower() or "ig" in sender_id.lower()
-                
-                if is_instagram:
-                    sender_id = sender_id.replace("ig:", "")  # Clean up Instagram sender ID
-                
                 if "message" in event:
+                    sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
@@ -163,10 +157,7 @@ def webhook():
                                 if (sticker_id == "369239263222822" or 
                                     "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
                                     is_thumbs_up = True
-                                    if is_instagram:
-                                        send_instagram_message(sender_id, "👍")
-                                    else:
-                                        send_message(sender_id, "👍")
+                                    send_message(sender_id, "👍")
                                     continue
 
                     if is_thumbs_up:
@@ -183,10 +174,7 @@ def webhook():
                                         f"image_url: {image_url}", 
                                         "[Image attachment]"
                                     )
-                                    if is_instagram:
-                                        send_instagram_message(sender_id, response)
-                                    else:
-                                        send_message(sender_id, response)
+                                    send_message(sender_id, response)
                                     if matched_product:
                                         update_user_memory(sender_id, response)
                                     image_processed = True
@@ -201,35 +189,20 @@ def webhook():
                             try:
                                 image_url = response.split(" - ")[-1].strip()
                                 if image_url.startswith(('http://', 'https://')):
-                                    if is_instagram:
-                                        send_instagram_image(sender_id, image_url)
-                                    else:
-                                        send_image(sender_id, image_url)
+                                    send_image(sender_id, image_url)
                                     product_text = response.split(" - ")[0]
                                     if product_text:
-                                        if is_instagram:
-                                            send_instagram_message(sender_id, product_text)
-                                        else:
-                                            send_message(sender_id, product_text)
+                                        send_message(sender_id, product_text)
                                         update_user_memory(sender_id, product_text)
                             except Exception as e:
                                 logger.error(f"Error processing image URL: {str(e)}")
-                                if is_instagram:
-                                    send_instagram_message(sender_id, response)
-                                else:
-                                    send_message(sender_id, response)
+                                send_message(sender_id, response)
                                 update_user_memory(sender_id, response)
                         else:
-                            if is_instagram:
-                                send_instagram_message(sender_id, response)
-                            else:
-                                send_message(sender_id, response)
+                            send_message(sender_id, response)
                             update_user_memory(sender_id, response)
                     elif not image_processed:
-                        if is_instagram:
-                            send_instagram_message(sender_id, "👍")
-                        else:
-                            send_message(sender_id, "👍")
+                        send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
     
@@ -255,6 +228,7 @@ def send_message(recipient_id, message=None):
         if response.status_code == 200:
             logger.info(f"Message sent to {recipient_id}")
         else:
+            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -290,6 +264,7 @@ def send_image(recipient_id, image_url):
         if response.status_code == 200:
             logger.info(f"Image sent to {recipient_id}")
         else:
+            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -298,73 +273,38 @@ def send_image(recipient_id, image_url):
     except Exception as e:
         logger.error(f"Error sending image: {str(e)}")
 
-def send_instagram_message(recipient_id, message=None):
-    """Send a message through Instagram's API"""
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    
-    if not isinstance(message, str):
-        message = str(message) if message else "An error occurred while processing your request."
-    
-    data = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": message},
-    }
-
+def update_github_repo(products):
     try:
-        response = requests.post(
-            "https://graph.facebook.com/v21.0/me/messages",
-            params=params,
-            headers=headers,
-            json=data
-        )
-        if response.status_code == 200:
-            logger.info(f"Instagram message sent to {recipient_id}")
-        else:
-            error_data = response.json()
-            if not (response.status_code == 400 and 
-                   error_data.get("error", {}).get("code") == 100 and 
-                   error_data.get("error", {}).get("error_subcode") == 2018001):
-                logger.error(f"Failed to send Instagram message: {response.text}")
-    except Exception as e:
-        logger.error(f"Error sending Instagram message: {str(e)}")
+        repo = github.get_repo(GITHUB_REPO_NAME)
+        content = repo.get_contents("messageHandler.py")
+        current_content = content.decoded_content.decode("utf-8")
+        start_marker = "# Product List\nproducts = ["
+        end_marker = "\n]"
+        start_index = current_content.find(start_marker)
+        end_index = current_content.find(end_marker, start_index) + len(end_marker)
 
-def send_instagram_image(recipient_id, image_url):
-    """Send an image through Instagram's API"""
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    
-    data = {
-        "recipient": {"id": recipient_id},
-        "message": {
-            "attachment": {
-                "type": "image",
-                "payload": {
-                    "url": image_url,
-                    "is_reusable": True
-                }
-            }
-        }
-    }
+        if start_index == -1 or end_index == -1:
+            logger.error("Failed to locate products block")
+            return
 
-    try:
-        response = requests.post(
-            "https://graph.facebook.com/v21.0/me/messages",
-            params=params,
-            headers=headers,
-            json=data
+        updated_content = (
+            current_content[:start_index] +
+            f"# Product List\nproducts = [\n" +
+            ",\n".join([f"    {repr(product)}" for product in products]) +
+            "\n]" +
+            current_content[end_index:]
         )
-        if response.status_code == 200:
-            logger.info(f"Instagram image sent to {recipient_id}")
-        else:
-            error_data = response.json()
-            if not (response.status_code == 400 and 
-                   error_data.get("error", {}).get("code") == 100 and 
-                   error_data.get("error", {}).get("error_subcode") == 2018001):
-                logger.error(f"Failed to send Instagram image: {response.text}")
+
+        repo.update_file(
+            path="messageHandler.py",
+            message="Update products via dashboard",
+            content=updated_content,
+            sha=content.sha
+        )
+        logger.info("GitHub products updated")
     except Exception as e:
-        logger.error(f"Error sending Instagram image: {str(e)}")
-        
+        logger.error(f"Failed to update GitHub products: {str(e)}")
+
 def update_github_repo_settings(settings):
     try:
         repo = github.get_repo(GITHUB_REPO_NAME)
