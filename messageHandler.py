@@ -393,7 +393,7 @@ Example: "Please send {850 + 130} = 980{settings['currency']} to Nagad: {setting
 2. If the customer selects COD, send the order confirmation message directly. Otherwise, send the payment details:
    - Provide payment details and total amount
    - Request transaction ID
-3. After receiving the transaction ID, send a confirmation message.
+3. After receiving the transaction ID, send a confirmation message in english exactly like this.
 Note: Make sure to send the text "Your order has been placed!" with the order confirmation message:
 Your order has been placed!
    - Name: [Name]
