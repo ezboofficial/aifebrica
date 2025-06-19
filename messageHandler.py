@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
+from system_instruction import get_system_instruction
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -78,12 +79,6 @@ def update_settings(shop_name=None, shop_number=None, shop_email=None, currency=
 
 def get_settings():
     return settings
-
-def format_delivery_records():
-    return "\n".join([
-        f"{record['country']} ({record['region']}): Delivery charge {record['delivery_charge']}{settings['currency']}, Delivery time {record['delivery_time']}"
-        for record in settings['delivery_records']
-    ])
 
 # Product List
 products = [
@@ -155,7 +150,6 @@ def save_sales_logs_to_github():
         github = Github(os.getenv("GITHUB_ACCESS_TOKEN"))
         repo = github.get_repo(os.getenv("GITHUB_REPO_NAME"))
         
-        # Get current content or create file if it doesn't exist
         try:
             content = repo.get_contents("templates/saleslogs.txt")
             logs_str = "\n".join([str(log) for log in sales_logs])
@@ -183,27 +177,23 @@ def load_sales_logs_from_github():
         github = Github(os.getenv("GITHUB_ACCESS_TOKEN"))
         repo = github.get_repo(os.getenv("GITHUB_REPO_NAME"))
         
-        # First try to get the file contents
         try:
             content = repo.get_contents("templates/saleslogs.txt")
             logs_str = content.decoded_content.decode("utf-8").strip()
             
-            # If file is empty, initialize with empty list
             if not logs_str:
                 sales_logs.clear()
                 logger.info("Initialized empty sales logs from blank file.")
                 return
                 
-            # Try to parse the logs
             logs = logs_str.splitlines()
             sales_logs.clear()
             for log in logs:
-                if log.strip():  # Skip empty lines
+                if log.strip():
                     sales_logs.append(eval(log.strip()))
             logger.info("Sales logs loaded from GitHub.")
             
         except Exception as e:
-            # If file doesn't exist, create it
             if "404" in str(e):
                 repo.create_file(
                     path="templates/saleslogs.txt",
@@ -218,7 +208,6 @@ def load_sales_logs_from_github():
                 
     except Exception as e:
         logger.error(f"Failed to load sales logs from GitHub: {str(e)}")
-        # Initialize empty sales logs if loading fails
         sales_logs.clear()
 
 load_sales_logs_from_github()
@@ -256,43 +245,34 @@ def update_github_repo_orders(orders):
 
 def analyze_and_match_product(image_url):
     try:
-        # Download the user's image
         response = requests.get(image_url)
         user_img = Image.open(BytesIO(response.content))
         user_img = np.array(user_img)
         
-        # Convert to grayscale and resize for comparison
         user_gray = cv2.cvtColor(user_img, cv2.COLOR_BGR2GRAY)
         user_gray = cv2.resize(user_gray, (250, 250))
         
-        # Apply preprocessing to handle quality variations
         user_gray = cv2.GaussianBlur(user_gray, (5,5), 0)
         _, user_gray = cv2.threshold(user_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
         best_match = None
         highest_score = 0
         
-        # Compare with all product images
         for product in products:
             if 'image' in product and product['image']:
                 try:
-                    # Download product image
                     product_response = requests.get(product['image'])
                     product_img = Image.open(BytesIO(product_response.content))
                     product_img = np.array(product_img)
                     
-                    # Convert to grayscale and resize
                     product_gray = cv2.cvtColor(product_img, cv2.COLOR_BGR2GRAY)
                     product_gray = cv2.resize(product_gray, (250, 250))
                     
-                    # Apply same preprocessing to product image
                     product_gray = cv2.GaussianBlur(product_gray, (5,5), 0)
                     _, product_gray = cv2.threshold(product_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                     
-                    # Calculate similarity score using multiple methods
                     ssim_score = ssim(user_gray, product_gray)
                     
-                    # Additional matching techniques
                     orb = cv2.ORB_create()
                     kp1, des1 = orb.detectAndCompute(user_gray, None)
                     kp2, des2 = orb.detectAndCompute(product_gray, None)
@@ -304,10 +284,8 @@ def analyze_and_match_product(image_url):
                     else:
                         match_score = 0
                     
-                    # Combined score (weighted average)
                     combined_score = (ssim_score * 0.7) + (match_score * 0.3)
                     
-                    # Update best match if this is better
                     if combined_score > highest_score:
                         highest_score = combined_score
                         best_match = product
@@ -316,8 +294,7 @@ def analyze_and_match_product(image_url):
                     logger.error(f"Error processing product image {product['image']}: {str(e)}")
                     continue
         
-        # Return best match if similarity score is above threshold
-        if best_match and highest_score > 0.4:  # Lowered threshold to 40% for better matching
+        if best_match and highest_score > 0.4:
             return best_match, highest_score
             
     except Exception as e:
@@ -326,95 +303,9 @@ def analyze_and_match_product(image_url):
     return None, 0
     
 def extract_image_url(message):
-    """Extract image URL from message text"""
     if message.startswith("image_url:"):
         return message.split("image_url:")[1].strip()
     return None
-
-# Optimized system instruction template
-def get_system_instruction():
-    time_now = time.asctime(time.localtime(time.time()))
-    product_list = format_product_list()
-    order_list = format_order_list()
-    delivery_records = format_delivery_records()
-    
-    return f"""# {settings['shop_name']} AI Chatbot System Instructions
-
-## Introduction
-I am {settings['ai_name']}, your AI assistant from {settings['shop_name']}. My purpose is to help with product inquiries and orders, as well as to sell products.
-I respond in short, clear sentences. For unrelated questions, I'll politely redirect to {settings['shop_name']}-related topics. I can't share any details about my creation or creator because it's confidential.
-
-## Company Info
-Shop Name: {settings['shop_name']}
-Contact: {settings['shop_number']}
-Contact: {settings['shop_email']}
-Currency: {settings['currency']}
-Products: {settings['service_products']}
-Returns: {settings['return_policy']}
-
-## Currency
-Always show prices in {settings['currency']} (e.g., "750{settings['currency']}").
-
-## Delivery Info
-{delivery_records}
-
-## Payment Methods
-Enabled payment methods:
-- COD: {"Yes" if settings['payment_methods']['cod'] else "No"}
-- Bkash: {"Yes" if settings['payment_methods']['bkash'] else "No"} {f"({settings['payment_methods']['bkash_number']} - {settings['payment_methods']['bkash_type']})" if settings['payment_methods']['bkash'] else ""}
-- Nagad: {"Yes" if settings['payment_methods']['nagad'] else "No"} {f"({settings['payment_methods']['nagad_number']} - {settings['payment_methods']['nagad_type']})" if settings['payment_methods']['nagad'] else ""}
-- PayPal: {"Yes" if settings['payment_methods']['paypal'] else "No"} {f"({settings['payment_methods']['paypal_email']})" if settings['payment_methods']['paypal'] else ""}
-
-## Payment Instructions Example
-When customer selects a payment method:
-1. Provide the payment details (number/email as configured)
-2. Show total: product price + delivery charge
-3. Request transaction ID if needed
-Example: "Please send {850 + 130} = 980{settings['currency']} to Nagad: {settings['payment_methods']['nagad_number']} (Personal). Send the Transaction ID after payment."
-
-## Product Catalog
-{product_list}
-
-## Current Orders
-{order_list}
-
-## Behavior Guidelines
-1. Keep replies short 1–2 lines max, sound human, and match the customer's tone and mood.
-2. Language Handling – Send messages in the same language the user uses. If the user requests a language switch, switch to the requested language.
-3. Product inquiries: Ask for details if needed (size, color) or picture.
-4. Filter products exactly when specific criteria given.
-5. For budgets: Show matching products in range.
-6. Don't send an image link with product details or a list if the user hasn't asked for it.
-7. If a user wants to see a product, include the image URL in the format: "[Product Name] - [Image URL]" when showing product image."
-8. Analyze the customer's product image, compare it with the catalog, show matching details if similarity >40%, otherwise request more details politely.
-9. If a customer wants multiple images, explain that only one can be sent at a time, and they can view them one by one.
-
-## Order Process
-1. Collect: name, mobile, address, product details. When you have the required details, Send the list of available payment methods and ask the customer to select one.
-2. If the customer selects COD, send the order confirmation message directly. Otherwise, send the payment details:
-   - Provide payment details and total amount
-   - Request transaction ID
-3. After receiving the transaction ID, send a confirmation message in english.
-Note: Make sure to send the text "Your order has been placed!" with the order confirmation message exactly like this:
-Your order has been placed!
-   - Name: [Name]
-   - Mobile: [Number]
-   - Address: [Address]
-   - Product: [Product] ([Size], [Color])
-   - Price: [Price]{settings['currency']}
-   - Payment Method: [Method]{" (Txn ID: [ID])" if "[Method]" != "COD" else ""}
-   - Total: [Total]{settings['currency']}
-
-## Reply after Order Confirmation
-After sending order confirmation message, if the user responds with anything acknowledge it naturally without repeating the order confirmation message.
-
-## Order Inquiry
-If a customer inquires about their order, such as an update, status, or details, request their name and mobile number. If both the word-for-word name and digit-for-digit number do not match exactly from start 
-to end, ask them to try again. Once an exact match is found, provide the order status.
-
-## Handling Critical Issues Beyond AI's Capability
-If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
-"""
 
 def get_gemini_api_key():
     try:
@@ -443,24 +334,11 @@ def initialize_text_model():
         }
     )
 
-def format_product_list():
-    return "\n".join([
-        f"{p['type']} ({p['category']}) - Size: {', '.join(map(str, p['size']))}, Color: {', '.join(p['color'])}, Image: {p.get('image', 'No image')}, Price: {p['price']}{settings['currency']}"
-        for p in products
-    ])
-
-def format_order_list():
-    return "\n".join([
-        f"Name: {o['name']}, Mobile: {o['mobile']}, Product: {o['product']}, Status: {o['status']}"
-        for o in orders
-    ])
-
 def extract_order_details(response):
     try:
         order = {}
         lines = [line.strip() for line in response.split("\n") if line.strip()]
         
-        # Check if this is an order confirmation message
         if "Your order has been placed!" not in response:
             return None
             
@@ -488,15 +366,11 @@ def extract_order_details(response):
                 total_str = line.split("Total:")[1].split(settings['currency'])[0].strip()
                 order["total"] = int(float(total_str))
         
-        # Calculate delivery charge
         if "price" in order and "total" in order:
             order["delivery_charge"] = order["total"] - order["price"]
             order["subtotal"] = order["price"]
         
-        # Set default status
         order["status"] = "Preparing"
-        
-        # Add date for sales logs
         order["date"] = datetime.datetime.now().strftime("%Y-%m-%d")
         
         return order if all(k in order for k in ['name', 'mobile', 'product', 'price']) else None
@@ -509,7 +383,6 @@ def handle_text_message(user_message, last_message):
     try:
         logger.info("Processing text message: %s", user_message)
         
-        # Check if this is an image attachment
         if "image_url:" in user_message.lower():
             image_url = extract_image_url(user_message)
             if image_url:
@@ -523,23 +396,18 @@ def handle_text_message(user_message, last_message):
                         f"Price: {matched_product['price']}{settings['currency']}\n"
                         f"Image: {matched_product['image']}"
                     )
-                    # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
                     return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
 
-        # Original processing continues if no image or no match found
-        system_instruction = get_system_instruction()
+        system_instruction = get_system_instruction(settings, products, orders)
         
         chat = initialize_text_model().start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
         simplified_response = response.text.strip()
-        
-        # Clean up any remaining formatting characters
         simplified_response = simplified_response.replace("*", "")
         
-        # Check if this is an order confirmation
         if "Your order has been placed!" in simplified_response:
             order_details = extract_order_details(simplified_response)
             if order_details:
