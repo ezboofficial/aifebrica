@@ -115,7 +115,8 @@ orders = [
     {'name': 'Adiba', 'mobile': '01707322649', 'address': '12-7,Karatia, Tangail', 'product': 'Denim Shirt (XL, Blue)', 'price': 780, 'payment_method': 'Bkash', 'transaction_id': 'CF30M88M2I', 'total': 940, 'delivery_charge': 160, 'subtotal': 780, 'status': 'Preparing', 'date': '2025-06-07'},
     {'name': 'Mr. Beast', 'mobile': '01709805110', 'address': 'Sector 10, Road 8, Uttara, Dhaka', 'product': 'Dress Shoes (40, Black)', 'price': 950, 'payment_method': 'Bkash', 'transaction_id': 'TXN23060511254789', 'total': 1010, 'delivery_charge': 60, 'subtotal': 950, 'status': 'Shipping', 'date': '2025-06-07'},
     {'name': 'Abdur Rahman', 'mobile': '01709702692', 'address': 'Dhaka, Boshundhora 18', 'product': 'Denim Shirt (XL, Gray)', 'price': 785, 'payment_method': 'Bkash', 'transaction_id': 'CF73PTCKCP', 'total': 845, 'delivery_charge': 60, 'subtotal': 785, 'status': 'Preparing', 'date': '2025-06-09'},
-    {'name': 'Jhon', 'mobile': '01711111111', 'address': 'Mirpur 10, Kazi Para, Dhaka', 'product': 'Denim Shirt (XL, Blue)', 'price': 785, 'payment_method': 'Bkash', 'transaction_id': '234568434zer', 'total': 845, 'delivery_charge': 60, 'subtotal': 785, 'status': 'Preparing', 'date': '2025-06-10'}
+    {'name': 'Jhon', 'mobile': '01711111111', 'address': 'Mirpur 10, Kazi Para, Dhaka', 'product': 'Denim Shirt (XL, Blue)', 'price': 785, 'payment_method': 'Bkash', 'transaction_id': '234568434zer', 'total': 845, 'delivery_charge': 60, 'subtotal': 785, 'status': 'Preparing', 'date': '2025-06-10'},
+    {'name': 'Tanbhir Ahammed', 'mobile': '015379406736', 'address': 'Rajbari city, Dhaka', 'product': 'Cotton Shirt (XL, Navy)', 'price': 800, 'payment_method': 'COD', 'total': 930, 'delivery_charge': 130, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-20'}
 ]
 
 # Sales Logs List
