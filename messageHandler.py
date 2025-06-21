@@ -111,7 +111,8 @@ def remove_product(index):
 
 # Orders List
 orders = [
-    {'name': 'আকিব', 'mobile': '01787337865', 'address': 'নারায়ণগঞ্জ চাষাড়া বড় ভাই', 'product': 'Casual Shoes (40, Red)', 'price': 1100, 'payment_method': 'COD', 'total': 1230, 'delivery_charge': 130, 'subtotal': 1100, 'status': 'Preparing', 'date': '2025-06-21'}
+    {'name': 'আকিব', 'mobile': '01787337865', 'address': 'নারায়ণগঞ্জ চাষাড়া বড় ভাই', 'product': 'Casual Shoes (40, Red)', 'price': 1100, 'payment_method': 'COD', 'total': 1230, 'delivery_charge': 130, 'subtotal': 1100, 'status': 'Preparing', 'date': '2025-06-21'},
+    {'name': 'Palash Khalashi', 'mobile': '0174582365', 'address': 'shibchar, madaripur, dhaka', 'product': 'Casual Shoes (42, Red)', 'price': 1100, 'payment_method': 'COD', 'total': 1220, 'delivery_charge': 120, 'subtotal': 1100, 'status': 'Preparing', 'date': '2025-06-21'}
 ]
 
 # Sales Logs List
