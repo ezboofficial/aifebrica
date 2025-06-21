@@ -385,7 +385,7 @@ Example: "Please send {850 + 130} = 980{settings['currency']} to Nagad: {setting
 9. If a customer wants to see a picture without providing the exact product name, suggest related options and ask them to choose one product to view the image.
 
 ## Order Process
-1. Collect: name, mobile, address, product details. Only proceed if you have all the required details, Send the list of available payment methods and ask the customer to select one.
+1. Collect: name, mobile, address, product details then Send the list of available payment methods and ask the customer to select one.
 2. If the customer selects COD, send the order confirmation message directly. Otherwise, send the payment details:
    - Provide payment details and total amount
    - Request transaction ID
