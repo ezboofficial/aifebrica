@@ -111,8 +111,6 @@ def remove_product(index):
 
 # Orders List
 orders = [
-    {'name': '[Name]', 'mobile': '[Number]', 'address': 'Uttar badda, shadhinata sarani, jamtola, 394 no house, road 8, PC 1212', 'product': 'Denim Shirt (L, Blue)', 'price': 785, 'payment_method': 'COD', 'total': 845, 'delivery_charge': 60, 'subtotal': 785, 'status': 'Preparing', 'date': '2025-06-21'},
-    {'name': 'আব্দুল্লাহ', 'mobile': '01302314693', 'address': 'কামরাঙ্গীরচর', 'product': 'Dress Shoes (40, Black)', 'price': 950, 'payment_method': 'COD', 'total': 1010, 'delivery_charge': 60, 'subtotal': 950, 'status': 'Preparing', 'date': '2025-06-21'}
 ]
 
 # Sales Logs List
