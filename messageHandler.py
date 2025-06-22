@@ -354,6 +354,8 @@ def mark_key_expired(api_key, error_message):
 
 def initialize_text_model():
     max_retries = 3
+    last_error = None
+    
     for attempt in range(max_retries):
         api_key = get_gemini_api_key()
         if not api_key:
@@ -374,6 +376,7 @@ def initialize_text_model():
             model.generate_content("Test")
             return model
         except Exception as e:
+            last_error = e
             error_msg = str(e)
             logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
             
@@ -381,8 +384,10 @@ def initialize_text_model():
             if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
                 mark_key_expired(api_key, error_msg)
                 continue
-            raise
-    raise ValueError("All API keys exhausted or failed")
+            # For other errors, also try the next key
+            continue
+    
+    raise ValueError(f"All API keys exhausted or failed. Last error: {str(last_error)}")
 
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
@@ -555,23 +560,45 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        model = initialize_text_model()
-        chat = model.start_chat(history=[])
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        max_retries = 4  # Try up to 4 different keys
+        last_error = None
         
-        simplified_response = response.text.strip()
-        simplified_response = simplified_response.replace("*", "")
+        for attempt in range(max_retries):
+            try:
+                model = initialize_text_model()
+                chat = model.start_chat(history=[])
+                response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+                
+                simplified_response = response.text.strip()
+                simplified_response = simplified_response.replace("*", "")
+                
+                # Skip if we got an error message (indicating API issues)
+                if "😔 Sorry" in simplified_response or "trouble processing" in simplified_response:
+                    raise ValueError("Received error message from API")
+                
+                # Check if this is an order confirmation
+                if "Your order has been placed!" in simplified_response:
+                    order_details = extract_order_details(simplified_response)
+                    if order_details:
+                        add_order(order_details)
+                        update_github_repo_orders(orders)
+                        logger.info("New order added and GitHub repository updated.")
+                
+                return simplified_response, None
+                
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed with API key: {str(e)}")
+                # Sleep briefly before trying next key
+                time.sleep(1)
+                continue
         
-        # Check if this is an order confirmation
-        if "Your order has been placed!" in simplified_response:
-            order_details = extract_order_details(simplified_response)
-            if order_details:
-                add_order(order_details)
-                update_github_repo_orders(orders)
-                logger.info("New order added and GitHub repository updated.")
-        
-        return simplified_response, None
+        # If we exhausted all retries
+        logger.error(f"All API key attempts failed. Last error: {str(last_error)}")
+        # Return a generic error message that doesn't reveal the internal issue
+        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
-        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+        # Return a generic error message that doesn't reveal the internal issue
+        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
