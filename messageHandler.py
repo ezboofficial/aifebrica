@@ -352,42 +352,23 @@ def mark_key_expired(api_key, error_message):
     except Exception as e:
         logger.error(f"Error marking API key as expired: {str(e)}")
 
-def initialize_text_model():
-    max_retries = 3
-    last_error = None
-    
-    for attempt in range(max_retries):
-        api_key = get_gemini_api_key()
-        if not api_key:
-            raise ValueError("No active Gemini API key available")
-        
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config={
-                    "temperature": 0.3,
-                    "top_p": 0.95,
-                    "top_k": 30,
-                    "max_output_tokens": 8192,
-                }
-            )
-            # Test the key with a simple request
-            model.generate_content("Test")
-            return model
-        except Exception as e:
-            last_error = e
-            error_msg = str(e)
-            logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
-            
-            # Check if this is a quota error
-            if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
-                mark_key_expired(api_key, error_msg)
-                continue
-            # For other errors, also try the next key
-            continue
-    
-    raise ValueError(f"All API keys exhausted or failed. Last error: {str(last_error)}")
+def initialize_text_model(api_key):
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "top_k": 30,
+                "max_output_tokens": 8192,
+            }
+        )
+        # Test the key with a simple request
+        model.generate_content("Test")
+        return model
+    except Exception as e:
+        raise ValueError(f"API key failed: {str(e)}")
 
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
@@ -564,8 +545,15 @@ def handle_text_message(user_message, last_message):
         last_error = None
         
         for attempt in range(max_retries):
+            current_api_key = None
             try:
-                model = initialize_text_model()
+                # Get the API key first so we can mark it as expired if it fails
+                current_api_key = get_gemini_api_key()
+                if not current_api_key:
+                    raise ValueError("No active Gemini API key available")
+                
+                # Initialize the model with the current API key
+                model = initialize_text_model(current_api_key)
                 chat = model.start_chat(history=[])
                 response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
                 
@@ -584,11 +572,17 @@ def handle_text_message(user_message, last_message):
                         update_github_repo_orders(orders)
                         logger.info("New order added and GitHub repository updated.")
                 
+                # If we got here, the API call was successful - return immediately
                 return simplified_response, None
                 
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed with API key: {str(e)}")
+                
+                # Immediately mark the failed API key as expired
+                if current_api_key:
+                    mark_key_expired(current_api_key, str(e))
+                
                 # Sleep briefly before trying next key
                 time.sleep(1)
                 continue
