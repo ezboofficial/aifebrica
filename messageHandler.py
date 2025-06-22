@@ -346,18 +346,21 @@ def mark_key_expired(api_key, error_message):
             }
         )
         if response.status_code == 200:
-            logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
+            logger.info(f"Marked API key {api_key[:10]}... as expired due to error: {error_message}")
         else:
             logger.error(f"Failed to mark API key as expired: HTTP {response.status_code}")
     except Exception as e:
         logger.error(f"Error marking API key as expired: {str(e)}")
 
-def initialize_text_model():
-    max_retries = 3
+def initialize_text_model(max_retries=3):
+    attempted_keys = set()
+    
     for attempt in range(max_retries):
         api_key = get_gemini_api_key()
-        if not api_key:
-            raise ValueError("No active Gemini API key available")
+        if not api_key or api_key in attempted_keys:
+            continue
+            
+        attempted_keys.add(api_key)
         
         try:
             genai.configure(api_key=api_key)
@@ -370,18 +373,22 @@ def initialize_text_model():
                     "max_output_tokens": 8192,
                 }
             )
+            
             # Test the key with a simple request
-            model.generate_content("Test")
+            response = model.generate_content("Test")
+            if not response.text.strip():
+                raise ValueError("Empty response from API")
+                
             return model
+            
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
             
-            # Check if this is a quota error
-            if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
-                mark_key_expired(api_key, error_msg)
-                continue
-            raise
+            # Mark key as expired for any error
+            mark_key_expired(api_key, error_msg)
+            continue
+            
     raise ValueError("All API keys exhausted or failed")
 
 def get_system_instruction():
@@ -557,10 +564,19 @@ def handle_text_message(user_message, last_message):
         
         model = initialize_text_model()
         chat = model.start_chat(history=[])
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
-        simplified_response = response.text.strip()
-        simplified_response = simplified_response.replace("*", "")
+        try:
+            response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+            simplified_response = response.text.strip()
+            simplified_response = simplified_response.replace("*", "")
+        except Exception as e:
+            logger.error(f"First attempt failed: {str(e)}")
+            # Try with a fresh model instance (which will get a new key)
+            model = initialize_text_model()
+            chat = model.start_chat(history=[])
+            response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+            simplified_response = response.text.strip()
+            simplified_response = simplified_response.replace("*", "")
         
         # Check if this is an order confirmation
         if "Your order has been placed!" in simplified_response:
@@ -574,4 +590,4 @@ def handle_text_message(user_message, last_message):
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
-        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+        return "😔 Sorry, I'm having trouble processing your request. Please try again later.", None
