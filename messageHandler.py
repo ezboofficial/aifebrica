@@ -31,7 +31,7 @@ logger.addHandler(handler)
 
 # Default settings
 settings = {
-    "shop_name": "Febrica",
+    "shop_name": "Febrica7",
     "shop_number": "+8801709805177",
     "shop_email": "developerabdurrahman88@gmail.com",
     "currency": "BDT",
