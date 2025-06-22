@@ -325,6 +325,65 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
+def get_gemini_api_key():
+    try:
+        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        if response.status_code == 200:
+            return response.text.strip()
+        logger.error(f"Failed to get API key: HTTP {response.status_code}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        return None
+
+def mark_key_expired(api_key, error_message):
+    try:
+        response = requests.post(
+            'https://ezbo.org/tools/api-keys.php',
+            data={
+                'mark_expired': api_key,
+                'error': error_message
+            }
+        )
+        if response.status_code == 200:
+            logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
+        else:
+            logger.error(f"Failed to mark API key as expired: HTTP {response.status_code}")
+    except Exception as e:
+        logger.error(f"Error marking API key as expired: {str(e)}")
+
+def initialize_text_model():
+    max_retries = 3
+    for attempt in range(max_retries):
+        api_key = get_gemini_api_key()
+        if not api_key:
+            raise ValueError("No active Gemini API key available")
+        
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                generation_config={
+                    "temperature": 0.3,
+                    "top_p": 0.95,
+                    "top_k": 30,
+                    "max_output_tokens": 8192,
+                }
+            )
+            # Test the key with a simple request
+            model.generate_content("Test")
+            return model
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
+            
+            # Check if this is a quota error
+            if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
+                mark_key_expired(api_key, error_msg)
+                continue
+            raise
+    raise ValueError("All API keys exhausted or failed")
+
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -408,46 +467,6 @@ to end, ask them to try again. Once an exact match is found, provide the order s
 ## Handling Critical Issues Beyond AI's Capability
 If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
 """
-
-def get_gemini_api_key():
-    try:
-        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
-        if response.status_code == 200:
-            return response.text.strip()
-        logger.error(f"Failed to get API key: HTTP {response.status_code}")
-        return None
-    except Exception as e:
-        logger.error(f"Error fetching API key: {str(e)}")
-        return None
-
-def mark_key_expired(api_key):
-    try:
-        response = requests.post(
-            'https://ezbo.org/tools/api-keys.php',
-            data={'mark_expired': api_key}
-        )
-        if response.status_code == 200:
-            logger.info(f"Marked API key as expired: {api_key[:10]}...")
-        else:
-            logger.error(f"Failed to mark API key as expired: {response.text}")
-    except Exception as e:
-        logger.error(f"Error marking API key as expired: {str(e)}")
-
-def initialize_text_model():
-    api_key = get_gemini_api_key()
-    if not api_key:
-        raise ValueError("No active Gemini API key available")
-    
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config={
-            "temperature": 0.3,
-            "top_p": 0.95,
-            "top_k": 30,
-            "max_output_tokens": 8192,
-        }
-    )
 
 def format_product_list():
     return "\n".join([
@@ -536,34 +555,23 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        try:
-            chat = initialize_text_model().start_chat(history=[])
-            response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
-            
-            simplified_response = response.text.strip()
-            simplified_response = simplified_response.replace("*", "")
-            
-            # Check if this is an order confirmation
-            if "Your order has been placed!" in simplified_response:
-                order_details = extract_order_details(simplified_response)
-                if order_details:
-                    add_order(order_details)
-                    update_github_repo_orders(orders)
-                    logger.info("New order added and GitHub repository updated.")
-            
-            return simplified_response, None
+        model = initialize_text_model()
+        chat = model.start_chat(history=[])
+        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        
+        simplified_response = response.text.strip()
+        simplified_response = simplified_response.replace("*", "")
+        
+        # Check if this is an order confirmation
+        if "Your order has been placed!" in simplified_response:
+            order_details = extract_order_details(simplified_response)
+            if order_details:
+                add_order(order_details)
+                update_github_repo_orders(orders)
+                logger.info("New order added and GitHub repository updated.")
+        
+        return simplified_response, None
 
-        except Exception as e:
-            # Check for quota exceeded error
-            if "429" in str(e) and "quota" in str(e).lower():
-                logger.error(f"API quota exceeded for current key")
-                # Get the current API key from the error
-                api_key = genai.api_key if hasattr(genai, 'api_key') else None
-                if api_key:
-                    mark_key_expired(api_key)
-                return "😔 Our system is currently busy. Please try again in a moment.", None
-            raise  # Re-raise other exceptions
-            
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
         return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
