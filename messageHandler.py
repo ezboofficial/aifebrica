@@ -1,4 +1,3 @@
-import os
 import logging
 import requests
 from io import BytesIO
@@ -31,7 +30,7 @@ logger.addHandler(handler)
 
 # Default settings
 settings = {
-    "shop_name": "Febrica7",
+    "shop_name": "Febrica",
     "shop_number": "+8801709805177",
     "shop_email": "developerabdurrahman88@gmail.com",
     "currency": "BDT",
