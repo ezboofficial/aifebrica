@@ -110,7 +110,9 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = []
+orders = [
+    {'name': 'সায়েম', 'mobile': '01765186380', 'address': 'ফেনী দাগনভুঞা', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-22'}
+]
 
 # Sales Logs List
 sales_logs = []
@@ -327,7 +329,10 @@ def extract_image_url(message):
 
 def get_gemini_api_key():
     try:
-        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        response = requests.get(
+            'https://ezbo.org/tools/api-keys.php?get_key=1',
+            verify=False  # SSL verification disabled here
+        )
         if response.status_code == 200:
             return response.text.strip()
         logger.error(f"Failed to get API key: HTTP {response.status_code}")
@@ -343,7 +348,8 @@ def mark_key_expired(api_key, error_message):
             data={
                 'mark_expired': api_key,
                 'error': error_message
-            }
+            },
+            verify=False  # SSL verification disabled here
         )
         if response.status_code == 200:
             logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
