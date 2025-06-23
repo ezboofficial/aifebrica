@@ -110,8 +110,7 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-]
+orders = []
 
 # Sales Logs List
 sales_logs = []
@@ -326,7 +325,65 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-# Optimized system instruction template
+def get_gemini_api_key():
+    try:
+        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        if response.status_code == 200:
+            return response.text.strip()
+        logger.error(f"Failed to get API key: HTTP {response.status_code}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        return None
+
+def mark_key_expired(api_key, error_message):
+    try:
+        response = requests.post(
+            'https://ezbo.org/tools/api-keys.php',
+            data={
+                'mark_expired': api_key,
+                'error': error_message
+            }
+        )
+        if response.status_code == 200:
+            logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
+        else:
+            logger.error(f"Failed to mark API key as expired: HTTP {response.status_code}")
+    except Exception as e:
+        logger.error(f"Error marking API key as expired: {str(e)}")
+
+def initialize_text_model():
+    max_retries = 3
+    for attempt in range(max_retries):
+        api_key = get_gemini_api_key()
+        if not api_key:
+            raise ValueError("No active Gemini API key available")
+        
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                generation_config={
+                    "temperature": 0.3,
+                    "top_p": 0.95,
+                    "top_k": 30,
+                    "max_output_tokens": 8192,
+                }
+            )
+            # Test the key with a simple request
+            model.generate_content("Test")
+            return model
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
+            
+            # Check if this is a quota error
+            if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
+                mark_key_expired(api_key, error_msg)
+                continue
+            raise
+    raise ValueError("All API keys exhausted or failed")
+
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -411,33 +468,6 @@ to end, ask them to try again. Once an exact match is found, provide the order s
 If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
 """
 
-def get_gemini_api_key():
-    try:
-        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
-        if response.status_code == 200:
-            return response.text.strip()
-        logger.error(f"Failed to get API key: HTTP {response.status_code}")
-        return None
-    except Exception as e:
-        logger.error(f"Error fetching API key: {str(e)}")
-        return None
-
-def initialize_text_model():
-    api_key = get_gemini_api_key()
-    if not api_key:
-        raise ValueError("No active Gemini API key available")
-    
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config={
-            "temperature": 0.3,
-            "top_p": 0.95,
-            "top_k": 30,
-            "max_output_tokens": 8192,
-        }
-    )
-
 def format_product_list():
     return "\n".join([
         f"{p['type']} ({p['category']}) - Size: {', '.join(map(str, p['size']))}, Color: {', '.join(p['color'])}, Image: {p.get('image', 'No image')}, Price: {p['price']}{settings['currency']}"
@@ -518,7 +548,6 @@ def handle_text_message(user_message, last_message):
                         f"Price: {matched_product['price']}{settings['currency']}\n"
                         f"Image: {matched_product['image']}"
                     )
-                    # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
                     return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
@@ -526,12 +555,11 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        chat = initialize_text_model().start_chat(history=[])
+        model = initialize_text_model()
+        chat = model.start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
         simplified_response = response.text.strip()
-        
-        # Clean up any remaining formatting characters
         simplified_response = simplified_response.replace("*", "")
         
         # Check if this is an order confirmation
