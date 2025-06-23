@@ -110,8 +110,7 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-]
+orders = []
 
 # Sales Logs List
 sales_logs = []
@@ -326,7 +325,6 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-# Optimized system instruction template
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -421,6 +419,19 @@ def get_gemini_api_key():
     except Exception as e:
         logger.error(f"Error fetching API key: {str(e)}")
         return None
+
+def mark_key_expired(api_key):
+    try:
+        response = requests.post(
+            'https://ezbo.org/tools/api-keys.php',
+            data={'mark_expired': api_key}
+        )
+        if response.status_code == 200:
+            logger.info(f"Marked API key as expired: {api_key[:10]}...")
+        else:
+            logger.error(f"Failed to mark API key as expired: {response.text}")
+    except Exception as e:
+        logger.error(f"Error marking API key as expired: {str(e)}")
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
@@ -518,7 +529,6 @@ def handle_text_message(user_message, last_message):
                         f"Price: {matched_product['price']}{settings['currency']}\n"
                         f"Image: {matched_product['image']}"
                     )
-                    # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
                     return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
@@ -526,24 +536,34 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        chat = initialize_text_model().start_chat(history=[])
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
-        
-        simplified_response = response.text.strip()
-        
-        # Clean up any remaining formatting characters
-        simplified_response = simplified_response.replace("*", "")
-        
-        # Check if this is an order confirmation
-        if "Your order has been placed!" in simplified_response:
-            order_details = extract_order_details(simplified_response)
-            if order_details:
-                add_order(order_details)
-                update_github_repo_orders(orders)
-                logger.info("New order added and GitHub repository updated.")
-        
-        return simplified_response, None
+        try:
+            chat = initialize_text_model().start_chat(history=[])
+            response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+            
+            simplified_response = response.text.strip()
+            simplified_response = simplified_response.replace("*", "")
+            
+            # Check if this is an order confirmation
+            if "Your order has been placed!" in simplified_response:
+                order_details = extract_order_details(simplified_response)
+                if order_details:
+                    add_order(order_details)
+                    update_github_repo_orders(orders)
+                    logger.info("New order added and GitHub repository updated.")
+            
+            return simplified_response, None
 
+        except Exception as e:
+            # Check for quota exceeded error
+            if "429" in str(e) and "quota" in str(e).lower():
+                logger.error(f"API quota exceeded for current key")
+                # Get the current API key from the error
+                api_key = genai.api_key if hasattr(genai, 'api_key') else None
+                if api_key:
+                    mark_key_expired(api_key)
+                return "😔 Our system is currently busy. Please try again in a moment.", None
+            raise  # Re-raise other exceptions
+            
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
         return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
