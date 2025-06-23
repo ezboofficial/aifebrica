@@ -110,120 +110,6 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-    {'name': 'Abdur Rahman', 'mobile': '017093701978', 'address': 'Dhaka, Uttora 8', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-23'}
-]mport os
-import logging
-import requests
-from io import BytesIO
-import time
-import google.generativeai as genai
-from dotenv import load_dotenv
-import urllib3
-from brain import query
-import datetime
-from github import Github
-from collections import deque
-import cv2
-import numpy as np
-from PIL import Image
-from skimage.metrics import structural_similarity as ssim
-
-# Disable SSL warnings
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# Load environment variables
-load_dotenv()
-
-# Logging setup
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# Default settings
-settings = {
-    "shop_name": "Febrica",
-    "shop_number": "+8801709805177",
-    "shop_email": "developerabdurrahman88@gmail.com",
-    "currency": "BDT",
-    "ai_name": "Ruhi",
-    "payment_methods": {
-        "cod": True,
-        "bkash": True,
-        "nagad": False,
-        "bkash_number": "01709805177",
-        "nagad_number": "",
-        "bkash_type": "Personal",
-        "nagad_type": "Personal",
-        "paypal": False,
-        "paypal_email": ""
-    },
-    "delivery_records": [
-        {'country': 'Bangladesh', 'region': 'Inside Dhaka ', 'delivery_time': '1-3 Days', 'delivery_charge': 60},
-        {'country': 'Bangladesh ', 'region': 'Outside Dhaka ', 'delivery_time': '3-5 Days', 'delivery_charge': 130},
-    ],
-    "service_products": "Selling high-quality Shirts, Pants, and Shoes.",
-    "return_policy": "Customers can return products within 7 days if there is a valid issue. Money will be refunded without delivery charges."
-}
-
-def update_settings(shop_name=None, shop_number=None, shop_email=None, currency=None, ai_name=None, greeting=None, 
-                   payment_methods=None, delivery_records=None, service_products=None, return_policy=None):
-    if shop_name:
-        settings["shop_name"] = shop_name
-    if shop_number:
-        settings["shop_number"] = shop_number
-    if shop_email:
-        settings["shop_email"] = shop_email
-    if currency:
-        settings["currency"] = currency
-    if ai_name:
-        settings["ai_name"] = ai_name
-    if payment_methods:
-        settings["payment_methods"].update(payment_methods)
-    if delivery_records:
-        settings["delivery_records"] = delivery_records
-    if service_products:
-        settings["service_products"] = service_products
-    if return_policy:
-        settings["return_policy"] = return_policy
-
-def get_settings():
-    return settings
-
-def format_delivery_records():
-    return "\n".join([
-        f"{record['country']} ({record['region']}): Delivery charge {record['delivery_charge']}{settings['currency']}, Delivery time {record['delivery_time']}"
-        for record in settings['delivery_records']
-    ])
-
-# Product List
-products = [
-    {'category': 'Shirt', 'type': 'Denim Shirt', 'size': ['M', 'L', 'XL'], 'color': ['Blue', 'Gray'], 'image': 'https://ezbo.org/product-image/uploads/img_682c988cbd00b6.10732605.jpg', 'price': 785},
-    {'category': 'Shirt', 'type': 'Cotton Shirt', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Black', 'Navy'], 'image': 'https://ezbo.org/product-image/uploads/img_682c98c0ee3119.95771931.jpg', 'price': 800},
-    {'category': 'Pant', 'type': 'Cargo Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Gray', 'White'], 'image': 'https://ezbo.org/product-image/uploads/img_682c990bc73608.08671474.jpg', 'price': 850},
-    {'category': 'Pant', 'type': 'Gabardine Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Black', 'Blue'], 'image': 'https://ezbo.org/product-image/uploads/img_682c9966ed74c6.48769739.jpg', 'price': 720},
-    {'category': 'Shoes', 'type': 'Casual Shoes', 'size': ['36', '37', '38', '39', '40', '41', '42'], 'color': ['Blue', 'Red'], 'image': 'https://ezbo.org/product-image/uploads/img_682c99a0295111.82030960.jpg', 'price': 1100},
-    {'category': 'Shoes', 'type': 'Dress Shoes', 'size': ['36', '37', '38', '39', '40'], 'color': ['Black', 'Orange'], 'image': 'https://ezbo.org/product-image/uploads/img_682c99d3d32951.87415347.jpg', 'price': 950}
-]
-
-def get_products():
-    return products
-
-def add_product(product):
-    products.append(product)
-
-def update_product(index, product):
-    if 0 <= index < len(products):
-        products[index] = product
-
-def remove_product(index):
-    if 0 <= index < len(products):
-        products.pop(index)
-
-# Orders List
 orders = []
 
 # Sales Logs List
@@ -466,37 +352,23 @@ def mark_key_expired(api_key, error_message):
     except Exception as e:
         logger.error(f"Error marking API key as expired: {str(e)}")
 
-def initialize_text_model():
-    max_retries = 3
-    for attempt in range(max_retries):
-        api_key = get_gemini_api_key()
-        if not api_key:
-            raise ValueError("No active Gemini API key available")
-        
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config={
-                    "temperature": 0.3,
-                    "top_p": 0.95,
-                    "top_k": 30,
-                    "max_output_tokens": 8192,
-                }
-            )
-            # Test the key with a simple request
-            model.generate_content("Test")
-            return model
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
-            
-            # Check if this is a quota error
-            if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
-                mark_key_expired(api_key, error_msg)
-                continue
-            raise
-    raise ValueError("All API keys exhausted or failed")
+def initialize_text_model(api_key):
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "top_k": 30,
+                "max_output_tokens": 8192,
+            }
+        )
+        # Test the key with a simple request
+        model.generate_content("Test")
+        return model
+    except Exception as e:
+        raise ValueError(f"API key failed: {str(e)}")
 
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
@@ -669,23 +541,58 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        model = initialize_text_model()
-        chat = model.start_chat(history=[])
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        max_retries = 4  # Try up to 4 different keys
+        last_error = None
         
-        simplified_response = response.text.strip()
-        simplified_response = simplified_response.replace("*", "")
+        for attempt in range(max_retries):
+            current_api_key = None
+            try:
+                # Get the API key first so we can mark it as expired if it fails
+                current_api_key = get_gemini_api_key()
+                if not current_api_key:
+                    raise ValueError("No active Gemini API key available")
+                
+                # Initialize the model with the current API key
+                model = initialize_text_model(current_api_key)
+                chat = model.start_chat(history=[])
+                response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+                
+                simplified_response = response.text.strip()
+                simplified_response = simplified_response.replace("*", "")
+                
+                # Skip if we got an error message (indicating API issues)
+                if "😔 Sorry" in simplified_response or "trouble processing" in simplified_response:
+                    raise ValueError("Received error message from API")
+                
+                # Check if this is an order confirmation
+                if "Your order has been placed!" in simplified_response:
+                    order_details = extract_order_details(simplified_response)
+                    if order_details:
+                        add_order(order_details)
+                        update_github_repo_orders(orders)
+                        logger.info("New order added and GitHub repository updated.")
+                
+                # If we got here, the API call was successful - return immediately
+                return simplified_response, None
+                
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed with API key: {str(e)}")
+                
+                # Immediately mark the failed API key as expired
+                if current_api_key:
+                    mark_key_expired(current_api_key, str(e))
+                
+                # Sleep briefly before trying next key
+                time.sleep(1)
+                continue
         
-        # Check if this is an order confirmation
-        if "Your order has been placed!" in simplified_response:
-            order_details = extract_order_details(simplified_response)
-            if order_details:
-                add_order(order_details)
-                update_github_repo_orders(orders)
-                logger.info("New order added and GitHub repository updated.")
-        
-        return simplified_response, None
+        # If we exhausted all retries
+        logger.error(f"All API key attempts failed. Last error: {str(last_error)}")
+        # Return a generic error message that doesn't reveal the internal issue
+        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
-        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+        # Return a generic error message that doesn't reveal the internal issue
+        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
