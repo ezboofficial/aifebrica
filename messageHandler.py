@@ -110,9 +110,7 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-    {'name': 'সায়েম', 'mobile': '01765186380', 'address': 'ফেনী দাগনভুঞা', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-22'}
-]
+orders = []
 
 # Sales Logs List
 sales_logs = []
@@ -329,10 +327,7 @@ def extract_image_url(message):
 
 def get_gemini_api_key():
     try:
-        response = requests.get(
-            'https://ezbo.org/tools/api-keys.php?get_key=1',
-            verify=False  # SSL verification disabled here
-        )
+        response = requests.get('https://ezbo.org/api-keys.php?get_key=1')  # Updated path
         if response.status_code == 200:
             return response.text.strip()
         logger.error(f"Failed to get API key: HTTP {response.status_code}")
@@ -344,12 +339,11 @@ def get_gemini_api_key():
 def mark_key_expired(api_key, error_message):
     try:
         response = requests.post(
-            'https://ezbo.org/tools/api-keys.php',
+            'https://ezbo.org/api-keys.php',  # Updated path
             data={
                 'mark_expired': api_key,
                 'error': error_message
-            },
-            verify=False  # SSL verification disabled here
+            }
         )
         if response.status_code == 200:
             logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
@@ -407,7 +401,7 @@ Enabled payment methods:
 - COD: {"Yes" if settings['payment_methods']['cod'] else "No"}
 - Bkash: {"Yes" if settings['payment_methods']['bkash'] else "No"} {f"({settings['payment_methods']['bkash_number']} - {settings['payment_methods']['bkash_type']})" if settings['payment_methods']['bkash'] else ""}
 - Nagad: {"Yes" if settings['payment_methods']['nagad'] else "No"} {f"({settings['payment_methods']['nagad_number']} - {settings['payment_methods']['nagad_type']})" if settings['payment_methods']['nagad'] else ""}
-- PayPal: {"Yes" if settings['payment_methods']['paypal'] else "No"} {f"({settings['payment_methods']['paypal_email']})" if settings['payment_methods']['paypal'] else ""}
+- PayPal: {"Yes" if settings['payment_methods']['paypal'] else "No"} {f"({settings['payment_methods']['paypal_email']})" if settings['payment_methods['paypal'] else ""}
 
 ## Payment Instructions Example
 When customer selects a payment method:
