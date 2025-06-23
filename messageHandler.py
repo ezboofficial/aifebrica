@@ -401,7 +401,7 @@ Enabled payment methods:
 - COD: {"Yes" if settings['payment_methods']['cod'] else "No"}
 - Bkash: {"Yes" if settings['payment_methods']['bkash'] else "No"} {f"({settings['payment_methods']['bkash_number']} - {settings['payment_methods']['bkash_type']})" if settings['payment_methods']['bkash'] else ""}
 - Nagad: {"Yes" if settings['payment_methods']['nagad'] else "No"} {f"({settings['payment_methods']['nagad_number']} - {settings['payment_methods']['nagad_type']})" if settings['payment_methods']['nagad'] else ""}
-- PayPal: {"Yes" if settings['payment_methods']['paypal'] else "No"} {f"({settings['payment_methods']['paypal_email']})" if settings['payment_methods['paypal'] else ""}
+- PayPal: {"Yes" if settings['payment_methods']['paypal'] else "No"} {f"({settings['payment_methods']['paypal_email']})" if settings['payment_methods']['paypal'] else ""}
 
 ## Payment Instructions Example
 When customer selects a payment method:
