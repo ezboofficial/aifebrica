@@ -110,7 +110,8 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = []
+orders = [
+]
 
 # Sales Logs List
 sales_logs = []
@@ -325,51 +326,7 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-def get_gemini_api_key():
-    try:
-        response = requests.get('https://ezbo.org/api-keys.php?get_key=1')  # Updated path
-        if response.status_code == 200:
-            return response.text.strip()
-        logger.error(f"Failed to get API key: HTTP {response.status_code}")
-        return None
-    except Exception as e:
-        logger.error(f"Error fetching API key: {str(e)}")
-        return None
-
-def mark_key_expired(api_key, error_message):
-    try:
-        response = requests.post(
-            'https://ezbo.org/api-keys.php',  # Updated path
-            data={
-                'mark_expired': api_key,
-                'error': error_message
-            }
-        )
-        if response.status_code == 200:
-            logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
-        else:
-            logger.error(f"Failed to mark API key as expired: HTTP {response.status_code}")
-    except Exception as e:
-        logger.error(f"Error marking API key as expired: {str(e)}")
-
-def initialize_text_model(api_key):
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config={
-                "temperature": 0.3,
-                "top_p": 0.95,
-                "top_k": 30,
-                "max_output_tokens": 8192,
-            }
-        )
-        # Test the key with a simple request
-        model.generate_content("Test")
-        return model
-    except Exception as e:
-        raise ValueError(f"API key failed: {str(e)}")
-
+# Optimized system instruction template
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -454,6 +411,33 @@ to end, ask them to try again. Once an exact match is found, provide the order s
 If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
 """
 
+def get_gemini_api_key():
+    try:
+        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        if response.status_code == 200:
+            return response.text.strip()
+        logger.error(f"Failed to get API key: HTTP {response.status_code}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        return None
+
+def initialize_text_model():
+    api_key = get_gemini_api_key()
+    if not api_key:
+        raise ValueError("No active Gemini API key available")
+    
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config={
+            "temperature": 0.3,
+            "top_p": 0.95,
+            "top_k": 30,
+            "max_output_tokens": 8192,
+        }
+    )
+
 def format_product_list():
     return "\n".join([
         f"{p['type']} ({p['category']}) - Size: {', '.join(map(str, p['size']))}, Color: {', '.join(p['color'])}, Image: {p.get('image', 'No image')}, Price: {p['price']}{settings['currency']}"
@@ -534,6 +518,7 @@ def handle_text_message(user_message, last_message):
                         f"Price: {matched_product['price']}{settings['currency']}\n"
                         f"Image: {matched_product['image']}"
                     )
+                    # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
                     return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
@@ -541,58 +526,24 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        max_retries = 4  # Try up to 4 different keys
-        last_error = None
+        chat = initialize_text_model().start_chat(history=[])
+        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
-        for attempt in range(max_retries):
-            current_api_key = None
-            try:
-                # Get the API key first so we can mark it as expired if it fails
-                current_api_key = get_gemini_api_key()
-                if not current_api_key:
-                    raise ValueError("No active Gemini API key available")
-                
-                # Initialize the model with the current API key
-                model = initialize_text_model(current_api_key)
-                chat = model.start_chat(history=[])
-                response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
-                
-                simplified_response = response.text.strip()
-                simplified_response = simplified_response.replace("*", "")
-                
-                # Skip if we got an error message (indicating API issues)
-                if "😔 Sorry" in simplified_response or "trouble processing" in simplified_response:
-                    raise ValueError("Received error message from API")
-                
-                # Check if this is an order confirmation
-                if "Your order has been placed!" in simplified_response:
-                    order_details = extract_order_details(simplified_response)
-                    if order_details:
-                        add_order(order_details)
-                        update_github_repo_orders(orders)
-                        logger.info("New order added and GitHub repository updated.")
-                
-                # If we got here, the API call was successful - return immediately
-                return simplified_response, None
-                
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Attempt {attempt + 1} failed with API key: {str(e)}")
-                
-                # Immediately mark the failed API key as expired
-                if current_api_key:
-                    mark_key_expired(current_api_key, str(e))
-                
-                # Sleep briefly before trying next key
-                time.sleep(1)
-                continue
+        simplified_response = response.text.strip()
         
-        # If we exhausted all retries
-        logger.error(f"All API key attempts failed. Last error: {str(last_error)}")
-        # Return a generic error message that doesn't reveal the internal issue
-        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
+        # Clean up any remaining formatting characters
+        simplified_response = simplified_response.replace("*", "")
+        
+        # Check if this is an order confirmation
+        if "Your order has been placed!" in simplified_response:
+            order_details = extract_order_details(simplified_response)
+            if order_details:
+                add_order(order_details)
+                update_github_repo_orders(orders)
+                logger.info("New order added and GitHub repository updated.")
+        
+        return simplified_response, None
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
-        # Return a generic error message that doesn't reveal the internal issue
-        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
+        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
