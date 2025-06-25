@@ -339,7 +339,7 @@ def get_gemini_api_key():
 def mark_key_expired(api_key, error_message):
     try:
         response = requests.post(
-            'https://ezbo.org/tools/api-keys.php?get_key=1',
+            'https://ezbo.org/tools/api-keys.php',
             data={
                 'mark_expired': api_key,
                 'error': error_message
