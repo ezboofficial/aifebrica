@@ -412,6 +412,15 @@ If a customer asks for an order detail change, order cancellation, return, or an
 """
 
 def get_gemini_api_key():
+    """Get the next available Gemini API key from rotation"""
+    try:
+        response = requests.get('https://ezbo.org/tools/api-keys.php?action=get_next_key', timeout=5)
+        if response.status_code == 200:
+            return response.text.strip()
+    except Exception as e:
+        logger.error(f"Error fetching API key from rotation: {str(e)}")
+    
+    # Fallback to environment variable if the rotation fails
     return os.getenv("GEMINI_API_KEY")
 
 def initialize_text_model():
