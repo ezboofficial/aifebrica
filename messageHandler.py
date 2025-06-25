@@ -413,22 +413,19 @@ If a customer asks for an order detail change, order cancellation, return, or an
 
 def get_gemini_api_key():
     try:
-        # Fetch API key from your PHP endpoint
-        response = requests.get("https://ezbo.org/tools/api-keys.php/123456", verify=False)
+        response = requests.get("https://ezbo.org/tools/api-key.php/123456")
         if response.status_code == 200:
             data = response.json()
-            return data.get("key")
-        else:
-            logger.error(f"Failed to fetch API key: HTTP {response.status_code}")
-            return None
+            return data.get('key')
+        logger.error(f"Failed to fetch API key: HTTP {response.status_code}")
     except Exception as e:
         logger.error(f"Error fetching API key: {str(e)}")
-        return None
+    return None
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
     if not api_key:
-        raise ValueError("Failed to retrieve Gemini API key from endpoint")
+        raise ValueError("No Gemini API key found from API endpoint")
     
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
