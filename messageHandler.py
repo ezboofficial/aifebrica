@@ -110,8 +110,7 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-]
+orders = []
 
 # Sales Logs List
 sales_logs = []
@@ -124,7 +123,6 @@ def add_order(order):
     update_github_repo_orders(orders)
     logger.info("New order added and GitHub repository updated.")
     
-    # Send email notification for new orders
     try:
         from app import send_order_notification
         send_order_notification(order)
@@ -150,7 +148,6 @@ def save_sales_logs_to_github():
         github = Github(os.getenv("GITHUB_ACCESS_TOKEN"))
         repo = github.get_repo(os.getenv("GITHUB_REPO_NAME"))
         
-        # Get current content or create file if it doesn't exist
         try:
             content = repo.get_contents("templates/saleslogs.txt")
             logs_str = "\n".join([str(log) for log in sales_logs])
@@ -178,27 +175,23 @@ def load_sales_logs_from_github():
         github = Github(os.getenv("GITHUB_ACCESS_TOKEN"))
         repo = github.get_repo(os.getenv("GITHUB_REPO_NAME"))
         
-        # First try to get the file contents
         try:
             content = repo.get_contents("templates/saleslogs.txt")
             logs_str = content.decoded_content.decode("utf-8").strip()
             
-            # If file is empty, initialize with empty list
             if not logs_str:
                 sales_logs.clear()
                 logger.info("Initialized empty sales logs from blank file.")
                 return
                 
-            # Try to parse the logs
             logs = logs_str.splitlines()
             sales_logs.clear()
             for log in logs:
-                if log.strip():  # Skip empty lines
+                if log.strip():
                     sales_logs.append(eval(log.strip()))
             logger.info("Sales logs loaded from GitHub.")
             
         except Exception as e:
-            # If file doesn't exist, create it
             if "404" in str(e):
                 repo.create_file(
                     path="templates/saleslogs.txt",
@@ -213,7 +206,6 @@ def load_sales_logs_from_github():
                 
     except Exception as e:
         logger.error(f"Failed to load sales logs from GitHub: {str(e)}")
-        # Initialize empty sales logs if loading fails
         sales_logs.clear()
 
 load_sales_logs_from_github()
@@ -251,43 +243,32 @@ def update_github_repo_orders(orders):
 
 def analyze_and_match_product(image_url):
     try:
-        # Download the user's image
         response = requests.get(image_url)
         user_img = Image.open(BytesIO(response.content))
         user_img = np.array(user_img)
         
-        # Convert to grayscale and resize for comparison
         user_gray = cv2.cvtColor(user_img, cv2.COLOR_BGR2GRAY)
         user_gray = cv2.resize(user_gray, (250, 250))
-        
-        # Apply preprocessing to handle quality variations
         user_gray = cv2.GaussianBlur(user_gray, (5,5), 0)
         _, user_gray = cv2.threshold(user_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
         best_match = None
         highest_score = 0
         
-        # Compare with all product images
         for product in products:
             if 'image' in product and product['image']:
                 try:
-                    # Download product image
                     product_response = requests.get(product['image'])
                     product_img = Image.open(BytesIO(product_response.content))
                     product_img = np.array(product_img)
                     
-                    # Convert to grayscale and resize
                     product_gray = cv2.cvtColor(product_img, cv2.COLOR_BGR2GRAY)
                     product_gray = cv2.resize(product_gray, (250, 250))
-                    
-                    # Apply same preprocessing to product image
                     product_gray = cv2.GaussianBlur(product_gray, (5,5), 0)
                     _, product_gray = cv2.threshold(product_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                     
-                    # Calculate similarity score using multiple methods
                     ssim_score = ssim(user_gray, product_gray)
                     
-                    # Additional matching techniques
                     orb = cv2.ORB_create()
                     kp1, des1 = orb.detectAndCompute(user_gray, None)
                     kp2, des2 = orb.detectAndCompute(product_gray, None)
@@ -299,10 +280,8 @@ def analyze_and_match_product(image_url):
                     else:
                         match_score = 0
                     
-                    # Combined score (weighted average)
                     combined_score = (ssim_score * 0.7) + (match_score * 0.3)
                     
-                    # Update best match if this is better
                     if combined_score > highest_score:
                         highest_score = combined_score
                         best_match = product
@@ -311,8 +290,7 @@ def analyze_and_match_product(image_url):
                     logger.error(f"Error processing product image {product['image']}: {str(e)}")
                     continue
         
-        # Return best match if similarity score is above threshold
-        if best_match and highest_score > 0.4:  # Lowered threshold to 40% for better matching
+        if best_match and highest_score > 0.4:
             return best_match, highest_score
             
     except Exception as e:
@@ -321,12 +299,10 @@ def analyze_and_match_product(image_url):
     return None, 0
     
 def extract_image_url(message):
-    """Extract image URL from message text"""
     if message.startswith("image_url:"):
         return message.split("image_url:")[1].strip()
     return None
 
-# Optimized system instruction template
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -413,23 +389,35 @@ If a customer asks for an order detail change, order cancellation, return, or an
 
 def get_gemini_api_key():
     try:
-        # URL to your PHP key manager
-        key_manager_url = "https://ezbo.org/tools/api-keys.php/123456"  # 123456 is the password from api-keys.php
+        key_manager_url = "https://ezbo.org/tools/api-keys.php/123456"  # Replace with your actual password
         
-        response = requests.get(key_manager_url, verify=False)
+        response = requests.get(
+            key_manager_url,
+            headers={'Accept': 'application/json'},
+            verify=False,
+            timeout=5
+        )
+        
         if response.status_code == 200:
             data = response.json()
             if "key" in data:
+                logger.info(f"Successfully retrieved Gemini API key")
                 return data["key"]
-        logger.error(f"Failed to get API key from manager. Status: {response.status_code}, Response: {response.text}")
+            else:
+                logger.error(f"Key not found in response: {data}")
+        else:
+            logger.error(f"Key manager returned status {response.status_code}")
+            
     except Exception as e:
         logger.error(f"Error fetching API key: {str(e)}")
+    
     return None
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
     if not api_key:
-        raise ValueError("Failed to get Gemini API key from key manager")
+        logger.error("Failed to get valid Gemini API key from key manager")
+        raise ValueError("Failed to get valid Gemini API key from key manager")
     
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
@@ -459,7 +447,6 @@ def extract_order_details(response):
         order = {}
         lines = [line.strip() for line in response.split("\n") if line.strip()]
         
-        # Check if this is an order confirmation message
         if "Your order has been placed!" not in response:
             return None
             
@@ -487,15 +474,11 @@ def extract_order_details(response):
                 total_str = line.split("Total:")[1].split(settings['currency'])[0].strip()
                 order["total"] = int(float(total_str))
         
-        # Calculate delivery charge
         if "price" in order and "total" in order:
             order["delivery_charge"] = order["total"] - order["price"]
             order["subtotal"] = order["price"]
         
-        # Set default status
         order["status"] = "Preparing"
-        
-        # Add date for sales logs
         order["date"] = datetime.datetime.now().strftime("%Y-%m-%d")
         
         return order if all(k in order for k in ['name', 'mobile', 'product', 'price']) else None
@@ -508,7 +491,6 @@ def handle_text_message(user_message, last_message):
     try:
         logger.info("Processing text message: %s", user_message)
         
-        # Check if this is an image attachment
         if "image_url:" in user_message.lower():
             image_url = extract_image_url(user_message)
             if image_url:
@@ -522,23 +504,18 @@ def handle_text_message(user_message, last_message):
                         f"Price: {matched_product['price']}{settings['currency']}\n"
                         f"Image: {matched_product['image']}"
                     )
-                    # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
                     return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
 
-        # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
         chat = initialize_text_model().start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
         simplified_response = response.text.strip()
-        
-        # Clean up any remaining formatting characters
         simplified_response = simplified_response.replace("*", "")
         
-        # Check if this is an order confirmation
         if "Your order has been placed!" in simplified_response:
             order_details = extract_order_details(simplified_response)
             if order_details:
