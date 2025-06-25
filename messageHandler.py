@@ -494,8 +494,10 @@ def handle_text_message(user_message, last_message):
         if not api_key:
             return "😔 Sorry, I can't process your message right now. Please try again later.", None
         
-        # Configure Gemini with the obtained API key
+        # Configure Gemini with the obtained API key (only once per message)
         genai.configure(api_key=api_key)
+        
+        # Initialize model outside of any loops
         model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config={
@@ -527,6 +529,7 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
+        # Use the same model instance for the chat
         chat = model.start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
