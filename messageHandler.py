@@ -1,4 +1,4 @@
-import os
+Import os
 import logging
 import requests
 from io import BytesIO
@@ -325,7 +325,51 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-# Optimized system instruction template
+def get_gemini_api_key():
+    try:
+        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        if response.status_code == 200:
+            return response.text.strip()
+        logger.error(f"Failed to get API key: HTTP {response.status_code}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        return None
+
+def mark_key_expired(api_key, error_message):
+    try:
+        response = requests.post(
+            'https://ezbo.org/tools/api-keys.php',
+            data={
+                'mark_expired': api_key,
+                'error': error_message
+            }
+        )
+        if response.status_code == 200:
+            logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
+        else:
+            logger.error(f"Failed to mark API key as expired: HTTP {response.status_code}")
+    except Exception as e:
+        logger.error(f"Error marking API key as expired: {str(e)}")
+
+def initialize_text_model(api_key):
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "top_k": 30,
+                "max_output_tokens": 8192,
+            }
+        )
+        # Test the key with a simple request
+        model.generate_content("Test")
+        return model
+    except Exception as e:
+        raise ValueError(f"API key failed: {str(e)}")
+
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -410,19 +454,6 @@ to end, ask them to try again. Once an exact match is found, provide the order s
 If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
 """
 
-def get_gemini_api_key():
-    try:
-        response = requests.get("https://ezbo-keys.onrender.com/api/get_key")
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("key")
-        else:
-            logger.error(f"Failed to get API key: {response.text}")
-            return None
-    except Exception as e:
-        logger.error(f"Error fetching API key: {str(e)}")
-        return None
-
 def format_product_list():
     return "\n".join([
         f"{p['type']} ({p['category']}) - Size: {', '.join(map(str, p['size']))}, Color: {', '.join(p['color'])}, Image: {p.get('image', 'No image')}, Price: {p['price']}{settings['currency']}"
@@ -489,25 +520,6 @@ def handle_text_message(user_message, last_message):
     try:
         logger.info("Processing text message: %s", user_message)
         
-        # Get API key once at the start and reuse it
-        api_key = get_gemini_api_key()
-        if not api_key:
-            return "😔 Sorry, I can't process your message right now. Please try again later.", None
-        
-        # Configure Gemini with the obtained API key (only once per message)
-        genai.configure(api_key=api_key)
-        
-        # Initialize model outside of any loops
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config={
-                "temperature": 0.3,
-                "top_p": 0.95,
-                "top_k": 30,
-                "max_output_tokens": 8192,
-            }
-        )
-        
         # Check if this is an image attachment
         if "image_url:" in user_message.lower():
             image_url = extract_image_url(user_message)
@@ -529,34 +541,58 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        # Use the same model instance for the chat
-        chat = model.start_chat(history=[])
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        max_retries = 4  # Try up to 4 different keys
+        last_error = None
         
-        simplified_response = response.text.strip()
-        simplified_response = simplified_response.replace("*", "")
+        for attempt in range(max_retries):
+            current_api_key = None
+            try:
+                # Get the API key first so we can mark it as expired if it fails
+                current_api_key = get_gemini_api_key()
+                if not current_api_key:
+                    raise ValueError("No active Gemini API key available")
+                
+                # Initialize the model with the current API key
+                model = initialize_text_model(current_api_key)
+                chat = model.start_chat(history=[])
+                response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+                
+                simplified_response = response.text.strip()
+                simplified_response = simplified_response.replace("*", "")
+                
+                # Skip if we got an error message (indicating API issues)
+                if "😔 Sorry" in simplified_response or "trouble processing" in simplified_response:
+                    raise ValueError("Received error message from API")
+                
+                # Check if this is an order confirmation
+                if "Your order has been placed!" in simplified_response:
+                    order_details = extract_order_details(simplified_response)
+                    if order_details:
+                        add_order(order_details)
+                        update_github_repo_orders(orders)
+                        logger.info("New order added and GitHub repository updated.")
+                
+                # If we got here, the API call was successful - return immediately
+                return simplified_response, None
+                
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed with API key: {str(e)}")
+                
+                # Immediately mark the failed API key as expired
+                if current_api_key:
+                    mark_key_expired(current_api_key, str(e))
+                
+                # Sleep briefly before trying next key
+                time.sleep(1)
+                continue
         
-        # Check if this is an order confirmation
-        if "Your order has been placed!" in simplified_response:
-            order_details = extract_order_details(simplified_response)
-            if order_details:
-                add_order(order_details)
-                update_github_repo_orders(orders)
-                logger.info("New order added and GitHub repository updated.")
-        
-        return simplified_response, None
+        # If we exhausted all retries
+        logger.error(f"All API key attempts failed. Last error: {str(last_error)}")
+        # Return a generic error message that doesn't reveal the internal issue
+        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
-        
-        # Report the failed key to the key management system
-        if 'api_key' in locals():
-            try:
-                requests.post(
-                    "https://ezbo-keys.onrender.com/api/report_error",
-                    json={"key": api_key}
-                )
-            except Exception as report_error:
-                logger.error(f"Failed to report expired key: {str(report_error)}")
-        
-        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+        # Return a generic error message that doesn't reveal the internal issue
+        return "I'm currently experiencing high demand. Please try your request again in a few moments.", None
