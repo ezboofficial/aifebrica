@@ -4,6 +4,7 @@ import requests
 from io import BytesIO
 import time
 import google.generativeai as genai
+from dotenv import load_dotenv
 import urllib3
 from brain import query
 import datetime
@@ -16,6 +17,9 @@ from skimage.metrics import structural_similarity as ssim
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Load environment variables
+load_dotenv()
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -106,7 +110,8 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = []
+orders = [
+]
 
 # Sales Logs List
 sales_logs = []
@@ -408,31 +413,22 @@ If a customer asks for an order detail change, order cancellation, return, or an
 
 def get_gemini_api_key():
     try:
-        # URL of your PHP endpoint with the password
-        api_url = "https://ezbo.org/tools/api-keys.php/123456"
-        
-        # Make the request to get an API key
-        response = requests.get(api_url, verify=False)  # verify=False to ignore SSL warnings
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        
-        # Parse the JSON response
-        key_data = response.json()
-        
-        # Return the key if available
-        if 'key' in key_data:
-            return key_data['key']
+        # Fetch API key from your PHP endpoint
+        response = requests.get("https://ezbo.org/tools/api-keys.php/123456", verify=False)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("key")
         else:
-            raise ValueError("No API key found in response")
-            
+            logger.error(f"Failed to fetch API key: HTTP {response.status_code}")
+            return None
     except Exception as e:
-        logger.error(f"Error fetching API key from endpoint: {str(e)}")
-        # Fall back to environment variable if the endpoint fails
-        return os.getenv("GEMINI_API_KEY")
+        logger.error(f"Error fetching API key: {str(e)}")
+        return None
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
     if not api_key:
-        raise ValueError("No Gemini API key found")
+        raise ValueError("Failed to retrieve Gemini API key from endpoint")
     
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
