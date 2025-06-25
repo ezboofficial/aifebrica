@@ -327,7 +327,7 @@ def extract_image_url(message):
 
 def get_gemini_api_key():
     try:
-        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
+        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1', verify=False)
         if response.status_code == 200:
             return response.text.strip()
         logger.error(f"Failed to get API key: HTTP {response.status_code}")
