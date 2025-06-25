@@ -489,10 +489,22 @@ def handle_text_message(user_message, last_message):
     try:
         logger.info("Processing text message: %s", user_message)
         
-        # Get API key once and reuse it
+        # Get API key once at the start and reuse it
         api_key = get_gemini_api_key()
         if not api_key:
             return "😔 Sorry, I can't process your message right now. Please try again later.", None
+        
+        # Configure Gemini with the obtained API key
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "top_k": 30,
+                "max_output_tokens": 8192,
+            }
+        )
         
         # Check if this is an image attachment
         if "image_url:" in user_message.lower():
@@ -514,17 +526,6 @@ def handle_text_message(user_message, last_message):
 
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
-        
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config={
-                "temperature": 0.3,
-                "top_p": 0.95,
-                "top_k": 30,
-                "max_output_tokens": 8192,
-            }
-        )
         
         chat = model.start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
