@@ -110,8 +110,7 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-]
+orders = []
 
 # Sales Logs List
 sales_logs = []
@@ -413,19 +412,21 @@ If a customer asks for an order detail change, order cancellation, return, or an
 
 def get_gemini_api_key():
     try:
-        response = requests.get("https://ezbo.org/tools/api-key.php/123456")
+        response = requests.get("https://ezbo-keys.onrender.com/api/get_key")
         if response.status_code == 200:
             data = response.json()
-            return data.get('key')
-        logger.error(f"Failed to fetch API key: HTTP {response.status_code}")
+            return data.get("key")
+        else:
+            logger.error(f"Failed to get API key: {response.text}")
+            return None
     except Exception as e:
         logger.error(f"Error fetching API key: {str(e)}")
-    return None
+        return None
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
     if not api_key:
-        raise ValueError("No Gemini API key found from API endpoint")
+        raise ValueError("Failed to retrieve Gemini API key from key management service")
     
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
@@ -546,4 +547,16 @@ def handle_text_message(user_message, last_message):
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
+        
+        # Report the failed key to the key management system
+        current_key = get_gemini_api_key()
+        if current_key:
+            try:
+                requests.post(
+                    "https://ezbo-keys.onrender.com/api/report_error",
+                    json={"key": current_key}
+                )
+            except Exception as report_error:
+                logger.error(f"Failed to report expired key: {str(report_error)}")
+        
         return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
