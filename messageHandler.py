@@ -412,7 +412,7 @@ If a customer asks for an order detail change, order cancellation, return, or an
 
 def get_gemini_api_key():
     try:
-        response = requests.get("https://ezbo-keys.onrender.com/api/get_key")
+        response = requests.get("https://ezbo-keys2.onrender.com/api/get_key")
         if response.status_code == 200:
             data = response.json()
             return data.get("key")
