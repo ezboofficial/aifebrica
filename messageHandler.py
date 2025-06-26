@@ -5,7 +5,6 @@ from io import BytesIO
 import time
 import google.generativeai as genai
 from dotenv import load_dotenv
-import urllib3
 from brain import query
 import datetime
 from github import Github
@@ -14,9 +13,6 @@ import cv2
 import numpy as np
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
-
-# Disable SSL warnings
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Load environment variables
 load_dotenv()
