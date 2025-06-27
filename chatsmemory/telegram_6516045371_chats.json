@@ -93,5 +93,10 @@
     "timestamp": "2025-06-27T23:03:36.716342",
     "role": "User",
     "message": "Budget unlimited i want to buy Cotton shirt red color"
+  },
+  {
+    "timestamp": "2025-06-27T23:03:38.392570",
+    "role": "AI",
+    "message": "We don't have red Cotton Shirts.  We have black and navy.  Which color would you prefer?"
   }
 ]
