@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T23:03:03.230561",
-    "role": "AI",
-    "message": "AI: Sam told me you're interested in buying something from Febrica. What are you looking for?  Shirts, pants, or shoes?  What size and color do you prefer?  And what's your budget?"
-  },
-  {
     "timestamp": "2025-06-27T23:03:36.716342",
     "role": "User",
     "message": "Budget unlimited i want to buy Cotton shirt red color"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:08:43.354959",
     "role": "AI",
     "message": "\u09e7-\u09e9 \u09a6\u09bf\u09a8\u09c7\u09b0 \u09ae\u09a7\u09cd\u09af\u09c7 \u09aa\u09a3\u09cd\u09af \u09aa\u09c7\u09df\u09c7 \u09af\u09be\u09ac\u09c7\u09a8\u0964"
+  },
+  {
+    "timestamp": "2025-06-27T23:08:53.419667",
+    "role": "User",
+    "message": "Dhonnobad."
   }
 ]
