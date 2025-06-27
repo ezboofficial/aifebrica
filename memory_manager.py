@@ -27,7 +27,7 @@ def get_memory_filename(platform, user_id):
     """Generate memory filename for a user"""
     return os.path.join(MEMORY_DIR, f"{platform}_{user_id}_chats.json")
 
-def update_user_memory(platform, user_id, message):
+def update_user_memory(platform, user_id, message, is_user=None):
     """Update user memory with a new message"""
     ensure_memory_dir()
     filename = get_memory_filename(platform, user_id)
@@ -40,17 +40,19 @@ def update_user_memory(platform, user_id, message):
         else:
             messages = []
         
-        # Determine if the message is from user or AI
-        is_user_message = not any([
-            message.startswith("["),
-            message.startswith("AI:"),
-            message.startswith(("Hi there!", "I'm doing great", "Okay", "That's", "For order changes", "I'm sorry"))
-        ])
+        # Determine role if not explicitly provided
+        if is_user is None:
+            is_user = not any([
+                message.startswith(("[", "AI:")),
+                message.startswith(("Hi there!", "I'm doing great", "Okay", "That's", 
+                                  "For order changes", "I'm sorry", "Sorry", "Please",
+                                  "How can I help", "Here is", "You can", "We have"))
+            ])
         
         # Add new message with timestamp and role
         messages.append({
             "timestamp": datetime.now().isoformat(),
-            "role": "User" if is_user_message else "AI",
+            "role": "User" if is_user else "AI",
             "message": message
         })
         
@@ -82,7 +84,12 @@ def get_conversation_history(platform, user_id):
         formatted = []
         for msg in messages:
             # Clean up message by removing any existing role prefixes
-            clean_msg = msg['message'].replace("AI:", "").replace("User:", "").strip()
+            clean_msg = msg['message']
+            if clean_msg.startswith("AI:"):
+                clean_msg = clean_msg[3:].strip()
+            elif clean_msg.startswith("User:"):
+                clean_msg = clean_msg[5:].strip()
+                
             formatted.append(f"{msg['role']}: {clean_msg}")
             
         return "\n".join(formatted)
@@ -134,4 +141,42 @@ def clear_conversation_history(platform, user_id):
         return False
     except Exception as e:
         logger.error(f"Error clearing conversation history: {str(e)}")
+        return False
+
+def get_raw_conversation_history(platform, user_id):
+    """Get raw conversation history with all metadata"""
+    filename = get_memory_filename(platform, user_id)
+    
+    if not os.path.exists(filename):
+        return []
+    
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error reading raw conversation history: {str(e)}")
+        return []
+
+def backup_conversation_history(platform, user_id, backup_dir="memory_backups"):
+    """Create a backup of conversation history"""
+    try:
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+            
+        filename = get_memory_filename(platform, user_id)
+        if not os.path.exists(filename):
+            return False
+            
+        backup_filename = os.path.join(
+            backup_dir,
+            f"{platform}_{user_id}_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        
+        with open(filename, 'r') as original, open(backup_filename, 'w') as backup:
+            backup.write(original.read())
+            
+        logger.info(f"Created backup of conversation history at {backup_filename}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating conversation backup: {str(e)}")
         return False
