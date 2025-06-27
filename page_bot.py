@@ -2,9 +2,9 @@
 import os
 import logging
 import requests
-from collections import deque
 from dotenv import load_dotenv
 from messageHandler import handle_text_message
+from memory_manager import update_user_memory, get_conversation_history
 
 # Load environment variables
 load_dotenv()
@@ -18,17 +18,6 @@ logger = logging.getLogger(__name__)
 
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
-
-# User memory for conversation history
-user_memory = {}
-
-def update_user_memory(user_id, message):
-    if user_id not in user_memory:
-        user_memory[user_id] = deque(maxlen=20)
-    user_memory[user_id].append(message)
-
-def get_conversation_history(user_id):
-    return "\n".join(user_memory.get(user_id, []))
 
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
@@ -51,6 +40,7 @@ def send_message(recipient_id, message=None):
         )
         if response.status_code == 200:
             logger.info(f"Message sent to {recipient_id}")
+            return True
         else:
             # Skip logging for "No matching user found" error
             error_data = response.json()
@@ -58,8 +48,10 @@ def send_message(recipient_id, message=None):
                    error_data.get("error", {}).get("code") == 100 and 
                    error_data.get("error", {}).get("error_subcode") == 2018001):
                 logger.error(f"Failed to send message: {response.text}")
+            return False
     except Exception as e:
         logger.error(f"Error sending message: {str(e)}")
+        return False
 
 def send_image(recipient_id, image_url):
     params = {"access_token": PAGE_ACCESS_TOKEN}
@@ -87,6 +79,7 @@ def send_image(recipient_id, image_url):
         )
         if response.status_code == 200:
             logger.info(f"Image sent to {recipient_id}")
+            return True
         else:
             # Skip logging for "No matching user found" error
             error_data = response.json()
@@ -94,8 +87,10 @@ def send_image(recipient_id, image_url):
                    error_data.get("error", {}).get("code") == 100 and 
                    error_data.get("error", {}).get("error_subcode") == 2018001):
                 logger.error(f"Failed to send image: {response.text}")
+            return False
     except Exception as e:
         logger.error(f"Error sending image: {str(e)}")
+        return False
 
 def handle_facebook_message(data):
     logger.info("Received data: %s", data)
@@ -119,7 +114,8 @@ def handle_facebook_message(data):
                                 if (sticker_id == "369239263222822" or 
                                     "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
                                     is_thumbs_up = True
-                                    send_message(sender_id, "👍")
+                                    if send_message(sender_id, "👍"):
+                                        update_user_memory(sender_id, "facebook", "👍", sender="ai")
                                     continue
 
                     if is_thumbs_up:
@@ -131,19 +127,20 @@ def handle_facebook_message(data):
                             if attachment.get("type") == "image" and not is_thumbs_up:
                                 image_url = attachment["payload"].get("url")
                                 if image_url:
-                                    update_user_memory(sender_id, "[User sent an image]")
+                                    update_user_memory(sender_id, "facebook", "[User sent an image]", sender="user")
                                     response, matched_product = handle_text_message(
                                         f"image_url: {image_url}", 
                                         "[Image attachment]"
                                     )
-                                    send_message(sender_id, response)
+                                    if send_message(sender_id, response):
+                                        update_user_memory(sender_id, "facebook", response, sender="ai")
                                     if matched_product:
-                                        update_user_memory(sender_id, response)
+                                        update_user_memory(sender_id, "facebook", response, sender="ai")
                                     image_processed = True
                     
                     if message_text and not image_processed:
-                        update_user_memory(sender_id, message_text)
-                        conversation_history = get_conversation_history(sender_id)
+                        update_user_memory(sender_id, "facebook", message_text, sender="user")
+                        conversation_history = get_conversation_history(sender_id, "facebook")
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
                         response, _ = handle_text_message(full_message, message_text)
                         
@@ -151,20 +148,21 @@ def handle_facebook_message(data):
                             try:
                                 image_url = response.split(" - ")[-1].strip()
                                 if image_url.startswith(('http://', 'https://')):
-                                    send_image(sender_id, image_url)
-                                    product_text = response.split(" - ")[0]
-                                    if product_text:
-                                        send_message(sender_id, product_text)
-                                        update_user_memory(sender_id, product_text)
+                                    if send_image(sender_id, image_url):
+                                        product_text = response.split(" - ")[0]
+                                        if product_text:
+                                            if send_message(sender_id, product_text):
+                                                update_user_memory(sender_id, "facebook", product_text, sender="ai")
                             except Exception as e:
                                 logger.error(f"Error processing image URL: {str(e)}")
-                                send_message(sender_id, response)
-                                update_user_memory(sender_id, response)
+                                if send_message(sender_id, response):
+                                    update_user_memory(sender_id, "facebook", response, sender="ai")
                         else:
-                            send_message(sender_id, response)
-                            update_user_memory(sender_id, response)
+                            if send_message(sender_id, response):
+                                update_user_memory(sender_id, "facebook", response, sender="ai")
                     elif not image_processed:
-                        send_message(sender_id, "👍")
+                        if send_message(sender_id, "👍"):
+                            update_user_memory(sender_id, "facebook", "👍", sender="ai")
 
 def verify_webhook(token_sent):
     if token_sent == VERIFY_TOKEN:
