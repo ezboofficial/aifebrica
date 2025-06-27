@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:14:54.643000",
-    "role": "User",
-    "message": "How are you?"
-  },
-  {
     "timestamp": "2025-06-27T22:14:56.388621",
     "role": "AI",
     "message": "I'm doing great, thanks for asking! How can I help you with your Febrica order or product inquiry today?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T22:26:20.533287",
     "role": "AI",
     "message": "Okay, Sam.  Your order will be delivered COD. I need your name, mobile number, and address to complete the order."
+  },
+  {
+    "timestamp": "2025-06-27T22:27:01.091570",
+    "role": "User",
+    "message": "Abdur Rahman \n01709805177\nDhaka, Mirpur Sector 12"
   }
 ]
