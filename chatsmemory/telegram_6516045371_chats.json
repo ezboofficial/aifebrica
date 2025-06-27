@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T23:01:57.739670",
-    "role": "User",
-    "message": "Hey anyone available? I am sam brother"
-  },
-  {
     "timestamp": "2025-06-27T23:01:59.837427",
     "role": "AI",
     "message": "Hi Bobby!  I'm ready to help you. What are you interested in from Febrica?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:07:49.814287",
     "role": "User",
     "message": "What was my brother name?"
+  },
+  {
+    "timestamp": "2025-06-27T23:07:51.558717",
+    "role": "AI",
+    "message": "AI: His name is Sam. Is there anything else?"
   }
 ]
