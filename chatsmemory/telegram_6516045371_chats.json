@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:43:57.405928",
-    "role": "AI",
-    "message": "I'm sorry, I don't understand what line you're referring to.  Could you please clarify?"
-  },
-  {
     "timestamp": "2025-06-27T22:44:16.596632",
     "role": "User",
     "message": "Aah the birthday line"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T22:49:17.784979",
     "role": "User",
     "message": "Try to remember sam sister name"
+  },
+  {
+    "timestamp": "2025-06-27T22:49:19.615949",
+    "role": "AI",
+    "message": "AI: I'm sorry, I don't remember names from previous conversations.  How can I help you with your Febrica order?"
   }
 ]
