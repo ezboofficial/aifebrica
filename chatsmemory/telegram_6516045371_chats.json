@@ -33,5 +33,10 @@
     "timestamp": "2025-06-27T22:56:24.535634",
     "role": "User",
     "message": "Great my little brother bobby want to buy something from febrica. He told me yesterday he likes something from your page."
+  },
+  {
+    "timestamp": "2025-06-27T22:56:26.543512",
+    "role": "AI",
+    "message": "Okay, I can help with that! To assist Bobby, I need some information. What kind of product is he interested in (Shirt, Pant, or Shoes)?  What size and color does he prefer?  And what's his budget?"
   }
 ]
