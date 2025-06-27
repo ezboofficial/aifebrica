@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T23:04:26.200286",
-    "role": "AI",
-    "message": "AI: Great! What size do you need?  We have M, L, XL, and XXL."
-  },
-  {
     "timestamp": "2025-06-27T23:04:32.510744",
     "role": "User",
     "message": "Xl"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:09:28.213658",
     "role": "User",
     "message": "Nah"
+  },
+  {
+    "timestamp": "2025-06-27T23:09:30.018014",
+    "role": "AI",
+    "message": "AI: \u0986\u099a\u09cd\u099b\u09be, \u09ad\u09be\u09b2\u09cb \u09a5\u09be\u0995\u09ac\u09c7\u09a8!"
   }
 ]
