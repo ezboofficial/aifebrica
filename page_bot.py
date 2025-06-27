@@ -19,8 +19,16 @@ logger = logging.getLogger(__name__)
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 
-# Track processed message IDs to prevent duplicates
-processed_messages = set()
+# User memory for conversation history
+user_memory = {}
+
+def update_user_memory(user_id, message):
+    if user_id not in user_memory:
+        user_memory[user_id] = deque(maxlen=20)
+    user_memory[user_id].append(message)
+
+def get_conversation_history(user_id):
+    return "\n".join(user_memory.get(user_id, []))
 
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
@@ -44,6 +52,7 @@ def send_message(recipient_id, message=None):
         if response.status_code == 200:
             logger.info(f"Message sent to {recipient_id}")
         else:
+            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -52,7 +61,7 @@ def send_message(recipient_id, message=None):
     except Exception as e:
         logger.error(f"Error sending message: {str(e)}")
 
-def send_image(recipient_id, image_url, caption=None):
+def send_image(recipient_id, image_url):
     params = {"access_token": PAGE_ACCESS_TOKEN}
     headers = {"Content-Type": "application/json"}
     
@@ -78,9 +87,8 @@ def send_image(recipient_id, image_url, caption=None):
         )
         if response.status_code == 200:
             logger.info(f"Image sent to {recipient_id}")
-            if caption:
-                send_message(recipient_id, caption)
         else:
+            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -90,60 +98,73 @@ def send_image(recipient_id, image_url, caption=None):
         logger.error(f"Error sending image: {str(e)}")
 
 def handle_facebook_message(data):
-    if data.get("object") != "page":
-        return
+    logger.info("Received data: %s", data)
 
-    for entry in data["entry"]:
-        for event in entry.get("messaging", []):
-            if "message" not in event:
-                continue
+    if data.get("object") == "page":
+        for entry in data["entry"]:
+            for event in entry.get("messaging", []):
+                if "message" in event:
+                    sender_id = event["sender"]["id"]
+                    message_text = event["message"].get("text")
+                    message_attachments = event["message"].get("attachments")
+                    
+                    is_thumbs_up = False
+                    if message_attachments:
+                        for attachment in message_attachments:
+                            if attachment.get("type") == "image":
+                                payload = attachment.get("payload", {})
+                                sticker_id = payload.get("sticker_id")
+                                image_url = payload.get("url", "")
+                                
+                                if (sticker_id == "369239263222822" or 
+                                    "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
+                                    is_thumbs_up = True
+                                    send_message(sender_id, "👍")
+                                    continue
 
-            message = event["message"]
-            message_id = message.get("mid")
-            sender_id = event["sender"]["id"]
+                    if is_thumbs_up:
+                        continue
 
-            # Skip if we've already processed this message
-            if message_id in processed_messages:
-                logger.info(f"Skipping already processed message: {message_id}")
-                continue
-
-            # Add to processed messages
-            processed_messages.add(message_id)
-            logger.info(f"Processing new message: {message_id}")
-
-            # Handle thumbs up reaction
-            if message.get("sticker_id") == "369239263222822":
-                send_message(sender_id, "👍")
-                continue
-
-            # Handle image attachments
-            attachments = message.get("attachments", [])
-            if attachments and attachments[0].get("type") == "image":
-                image_url = attachments[0]["payload"].get("url")
-                if image_url:
-                    response, _ = handle_text_message(f"image_url: {image_url}", "[Image attachment]")
-                    if " - http" in response:
-                        parts = response.split(" - ")
-                        if len(parts) > 1:
-                            product_text = parts[0]
-                            image_url = parts[-1].strip()
-                            send_image(sender_id, image_url, product_text)
-                    else:
-                        send_message(sender_id, response)
-                    continue
-
-            # Handle text messages
-            text = message.get("text", "").strip()
-            if text:
-                response, _ = handle_text_message(text, None)
-                if " - http" in response:
-                    parts = response.split(" - ")
-                    if len(parts) > 1:
-                        product_text = parts[0]
-                        image_url = parts[-1].strip()
-                        send_image(sender_id, image_url, product_text)
-                else:
-                    send_message(sender_id, response)
+                    image_processed = False
+                    if message_attachments:
+                        for attachment in message_attachments:
+                            if attachment.get("type") == "image" and not is_thumbs_up:
+                                image_url = attachment["payload"].get("url")
+                                if image_url:
+                                    update_user_memory(sender_id, "[User sent an image]")
+                                    response, matched_product = handle_text_message(
+                                        f"image_url: {image_url}", 
+                                        "[Image attachment]"
+                                    )
+                                    send_message(sender_id, response)
+                                    if matched_product:
+                                        update_user_memory(sender_id, response)
+                                    image_processed = True
+                    
+                    if message_text and not image_processed:
+                        update_user_memory(sender_id, message_text)
+                        conversation_history = get_conversation_history(sender_id)
+                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                        response, _ = handle_text_message(full_message, message_text)
+                        
+                        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+                            try:
+                                image_url = response.split(" - ")[-1].strip()
+                                if image_url.startswith(('http://', 'https://')):
+                                    send_image(sender_id, image_url)
+                                    product_text = response.split(" - ")[0]
+                                    if product_text:
+                                        send_message(sender_id, product_text)
+                                        update_user_memory(sender_id, product_text)
+                            except Exception as e:
+                                logger.error(f"Error processing image URL: {str(e)}")
+                                send_message(sender_id, response)
+                                update_user_memory(sender_id, response)
+                        else:
+                            send_message(sender_id, response)
+                            update_user_memory(sender_id, response)
+                    elif not image_processed:
+                        send_message(sender_id, "👍")
 
 def verify_webhook(token_sent):
     if token_sent == VERIFY_TOKEN:
