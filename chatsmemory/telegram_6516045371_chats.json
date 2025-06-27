@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:39:55.871258",
-    "role": "User",
-    "message": "Hi"
-  },
-  {
     "timestamp": "2025-06-27T22:39:57.625245",
     "role": "AI",
     "message": "Hi there! How can I help you today?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T22:48:37.579976",
     "role": "AI",
     "message": "AI: No, I don't remember previous conversations.  How can I help you with your Febrica order?"
+  },
+  {
+    "timestamp": "2025-06-27T22:48:59.141446",
+    "role": "User",
+    "message": "Ooh ruhi you forgot my name i am sam sister \ud83e\udd79"
   }
 ]
