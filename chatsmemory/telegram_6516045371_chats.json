@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T23:04:10.707836",
-    "role": "User",
-    "message": "Yeap show me"
-  },
-  {
     "timestamp": "2025-06-27T23:04:24.100285",
     "role": "User",
     "message": "Wow looks great man"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:09:19.104301",
     "role": "User",
     "message": "Amar name ta bollen na valo thakber bollen sudhu."
+  },
+  {
+    "timestamp": "2025-06-27T23:09:20.995132",
+    "role": "AI",
+    "message": "AI: \u09a6\u09c1\u0983\u0996\u09bf\u09a4, \u0986\u09ae\u09bf \u09ad\u09c1\u09b2\u09c7 \u0997\u09c7\u099b\u09bf\u0964  \u0986\u09aa\u09a8\u09be\u09b0 \u09a8\u09be\u09ae \u09ac\u09ac\u09bf\u0964  \u0986\u09b0 \u0995\u09bf\u099b\u09c1 \u09aa\u09cd\u09b0\u09df\u09cb\u099c\u09a8?"
   }
 ]
