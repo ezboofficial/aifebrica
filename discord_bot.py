@@ -49,13 +49,13 @@ class DiscordBot(commands.Bot):
                     if 'image' in attachment.content_type:
                         image_url = attachment.url
                         message_text = f"image_url: {image_url}"
-                        update_user_memory(user_id, "discord", "[User sent an image]", sender="user")
+                        update_user_memory("discord", user_id, "[User sent an image]")
                         
                         # Process the image directly through messageHandler
                         response, matched_product = handle_text_message(message_text, "[Image attachment]")
                         
                         if matched_product:
-                            update_user_memory(user_id, "discord", response, sender="ai")
+                            update_user_memory("discord", user_id, response)
                         
                         # Send the response
                         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
@@ -68,27 +68,22 @@ class DiscordBot(commands.Bot):
                                 if image_response.status_code == 200:
                                     # Send image
                                     await message.channel.send(
-                                        content=product_text,
-                                        file=discord.File(BytesIO(image_response.content), filename='image.png')
-                                    )
-                                    update_user_memory(user_id, "discord", product_text, sender="ai")
+                                        product_text, 
+                                        file=discord.File(BytesIO(image_response.content), 'image.png')
                                 else:
                                     await message.channel.send(response)
-                                    update_user_memory(user_id, "discord", response, sender="ai")
                             except Exception as e:
                                 logger.error(f"Error processing image URL for Discord: {str(e)}")
                                 await message.channel.send(response)
-                                update_user_memory(user_id, "discord", response, sender="ai")
                         else:
                             await message.channel.send(response)
-                            update_user_memory(user_id, "discord", response, sender="ai")
                         return
             
             if message_text:
-                update_user_memory(user_id, "discord", message_text, sender="user")
+                update_user_memory("discord", user_id, message_text)
             
             # Get conversation history
-            conversation_history = get_conversation_history(user_id, "discord")
+            conversation_history = get_conversation_history("discord", user_id)
             full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
             
             # Process the message through your existing handler
@@ -96,38 +91,33 @@ class DiscordBot(commands.Bot):
             
             # Update memory with the response if it's not an image
             if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
-                update_user_memory(user_id, "discord", response, sender="ai")
+                update_user_memory("discord", user_id, response)
             
             # Check if response contains an image URL
             if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                 try:
-                    product_text = response.split(" - ")[0]
                     image_url = response.split(" - ")[-1].strip()
+                    product_text = response.split(" - ")[0]
                     
                     # Download image
                     image_response = requests.get(image_url)
                     if image_response.status_code == 200:
                         # Send image
                         await message.channel.send(
-                            content=product_text,
-                            file=discord.File(BytesIO(image_response.content), filename='image.png')
+                            product_text, 
+                            file=discord.File(BytesIO(image_response.content), 'image.png')
                         )
-                        update_user_memory(user_id, "discord", product_text, sender="ai")
                     else:
                         await message.channel.send(response)
-                        update_user_memory(user_id, "discord", response, sender="ai")
                 except Exception as e:
                     logger.error(f"Error processing image URL for Discord: {str(e)}")
                     await message.channel.send(response)
-                    update_user_memory(user_id, "discord", response, sender="ai")
             else:
                 await message.channel.send(response)
-                update_user_memory(user_id, "discord", response, sender="ai")
                 
         except Exception as e:
             logger.error(f"Error in Discord on_message: {str(e)}")
             await message.channel.send("Sorry, I encountered an error processing your message.")
-            update_user_memory(user_id, "discord", "Sorry, I encountered an error processing your message.", sender="ai")
 
 def run_discord_bot():
     if not DISCORD_TOKEN:
