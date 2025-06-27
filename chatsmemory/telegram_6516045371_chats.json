@@ -28,5 +28,10 @@
     "timestamp": "2025-06-27T22:42:14.129751",
     "role": "AI",
     "message": "Okay, Sam! How can I help you with Febrica today?"
+  },
+  {
+    "timestamp": "2025-06-27T22:42:31.388339",
+    "role": "User",
+    "message": "Tomorrow my little sister nova birthday"
   }
 ]
