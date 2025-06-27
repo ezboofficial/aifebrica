@@ -23,5 +23,10 @@
     "timestamp": "2025-06-27T23:57:58.776120",
     "role": "User",
     "message": "Can you help me with my online orders?"
+  },
+  {
+    "timestamp": "2025-06-27T23:58:00.624496",
+    "role": "AI",
+    "message": "Sure!  What's your name and mobile number?"
   }
 ]
