@@ -143,5 +143,10 @@
     "timestamp": "2025-06-27T22:26:07.437609",
     "role": "User",
     "message": "Inside"
+  },
+  {
+    "timestamp": "2025-06-27T22:26:10.136559",
+    "role": "AI",
+    "message": "Okay, Sam. That's 800BDT + 60BDT delivery = 860BDT total.  We accept Bkash (01709805177) or COD. Which do you prefer?"
   }
 ]
