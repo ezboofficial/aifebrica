@@ -49,6 +49,12 @@ def update_user_memory(platform, user_id, message, is_user=None):
                                   "How can I help", "Here is", "You can", "We have"))
             ])
         
+        # Remove any existing role prefix from the message
+        if message.startswith("AI: "):
+            message = message[4:].strip()
+        elif message.startswith("User: "):
+            message = message[6:].strip()
+        
         # Add new message with timestamp and role
         messages.append({
             "timestamp": datetime.now().isoformat(),
