@@ -110,8 +110,7 @@ def remove_product(index):
         products.pop(index)
 
 # Orders List
-orders = [
-]
+orders = []
 
 # Sales Logs List
 sales_logs = []
@@ -412,13 +411,17 @@ If a customer asks for an order detail change, order cancellation, return, or an
 """
 
 def get_gemini_api_key():
-    return os.getenv("GEMINI_API_KEY")
+    try:
+        response = requests.get('https://ezbo.org/api/key-manager.php/123456')
+        response.raise_for_status()
+        data = response.json()
+        return data['api_key']
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        raise RuntimeError("Failed to fetch Gemini API key from key manager")
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
-    if not api_key:
-        raise ValueError("No Gemini API key found in environment variables")
-    
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
         model_name="gemini-1.5-flash",
