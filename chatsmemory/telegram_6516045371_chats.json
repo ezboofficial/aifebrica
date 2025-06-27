@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T23:02:32.078001",
-    "role": "AI",
-    "message": "Sam told me you were coming to ask about Febrica."
-  },
-  {
     "timestamp": "2025-06-27T23:03:01.339825",
     "role": "User",
     "message": "Great he told me anything else if give me full context i can continue"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:08:14.833834",
     "role": "AI",
     "message": "AI: I'm sorry, I don't understand.  Is there anything else I can help you with regarding your Febrica order?"
+  },
+  {
+    "timestamp": "2025-06-27T23:08:41.509541",
+    "role": "User",
+    "message": "\u0995\u09a4\u09cb \u09a6\u09bf\u09a8\u09c7 \u09b9\u09be\u09a4\u09c7 \u09aa\u09be\u09ac\u09cb \u09aa\u09a8\u09cd\u09af?"
   }
 ]
