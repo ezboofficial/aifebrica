@@ -3,5 +3,10 @@
     "timestamp": "2025-06-27T22:14:47.880078",
     "role": "User",
     "message": "HI"
+  },
+  {
+    "timestamp": "2025-06-27T22:14:49.854416",
+    "role": "AI",
+    "message": "Hi there! How can I help you today?"
   }
 ]
