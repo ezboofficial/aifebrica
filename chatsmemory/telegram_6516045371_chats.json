@@ -108,5 +108,10 @@
     "timestamp": "2025-06-27T23:03:58.529109",
     "role": "AI",
     "message": "Okay, for a white skin tone, navy blue would likely look best. We have a navy Cotton Shirt.  Do you want to see the image?"
+  },
+  {
+    "timestamp": "2025-06-27T23:04:10.707836",
+    "role": "User",
+    "message": "Yeap show me"
   }
 ]
