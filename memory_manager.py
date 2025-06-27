@@ -40,9 +40,17 @@ def update_user_memory(platform, user_id, message):
         else:
             messages = []
         
-        # Add new message with timestamp
+        # Determine if the message is from user or AI
+        is_user_message = not any([
+            message.startswith("["),
+            message.startswith("AI:"),
+            message.startswith(("Hi there!", "I'm doing great", "Okay", "That's", "For order changes", "I'm sorry"))
+        ])
+        
+        # Add new message with timestamp and role
         messages.append({
             "timestamp": datetime.now().isoformat(),
+            "role": "User" if is_user_message else "AI",
             "message": message
         })
         
@@ -60,7 +68,7 @@ def update_user_memory(platform, user_id, message):
         logger.error(f"Error updating user memory: {str(e)}")
 
 def get_conversation_history(platform, user_id):
-    """Get conversation history for a user"""
+    """Get conversation history for a user in the desired format"""
     filename = get_memory_filename(platform, user_id)
     
     if not os.path.exists(filename):
@@ -70,13 +78,15 @@ def get_conversation_history(platform, user_id):
         with open(filename, 'r') as f:
             messages = json.load(f)
         
-        # Format messages as "User/AI: message"
+        # Format messages as "User: message" or "AI: message"
         formatted = []
         for msg in messages:
-            role = "User" if msg['message'].startswith("[User") else "AI"
-            formatted.append(f"{role}: {msg['message']}")
+            # Clean up message by removing any existing role prefixes
+            clean_msg = msg['message'].replace("AI:", "").replace("User:", "").strip()
+            formatted.append(f"{msg['role']}: {clean_msg}")
             
         return "\n".join(formatted)
+    
     except Exception as e:
         logger.error(f"Error reading conversation history: {str(e)}")
         return ""
@@ -112,3 +122,16 @@ def update_github_repo(filename, content):
         logger.info(f"GitHub repository updated with memory changes for {filename}")
     except Exception as e:
         logger.error(f"Failed to update GitHub repository with memory changes: {str(e)}")
+
+def clear_conversation_history(platform, user_id):
+    """Clear conversation history for a user"""
+    filename = get_memory_filename(platform, user_id)
+    try:
+        if os.path.exists(filename):
+            os.remove(filename)
+            logger.info(f"Cleared conversation history for {platform} user {user_id}")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error clearing conversation history: {str(e)}")
+        return False
