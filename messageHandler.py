@@ -327,65 +327,7 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-def get_gemini_api_key():
-    try:
-        response = requests.get('https://ezbo.org/tools/api-keys.php?get_key=1')
-        if response.status_code == 200:
-            return response.text.strip()
-        logger.error(f"Failed to get API key: HTTP {response.status_code}")
-        return None
-    except Exception as e:
-        logger.error(f"Error fetching API key: {str(e)}")
-        return None
-
-def mark_key_expired(api_key, error_message):
-    try:
-        response = requests.post(
-            'https://ezbo.org/tools/api-keys.php',
-            data={
-                'mark_expired': api_key,
-                'error': error_message
-            }
-        )
-        if response.status_code == 200:
-            logger.info(f"Marked API key {api_key[:10]}... as expired due to error")
-        else:
-            logger.error(f"Failed to mark API key as expired: HTTP {response.status_code}")
-    except Exception as e:
-        logger.error(f"Error marking API key as expired: {str(e)}")
-
-def initialize_text_model():
-    max_retries = 3
-    for attempt in range(max_retries):
-        api_key = get_gemini_api_key()
-        if not api_key:
-            raise ValueError("No active Gemini API key available")
-        
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config={
-                    "temperature": 0.3,
-                    "top_p": 0.95,
-                    "top_k": 30,
-                    "max_output_tokens": 8192,
-                }
-            )
-            # Test the key with a simple request
-            model.generate_content("Test")
-            return model
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Error with API key {api_key[:10]}...: {error_msg}")
-            
-            # Check if this is a quota error
-            if "quota" in error_msg.lower() or "429" in error_msg or "exceeded" in error_msg:
-                mark_key_expired(api_key, error_msg)
-                continue
-            raise
-    raise ValueError("All API keys exhausted or failed")
-
+# Optimized system instruction template
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
     product_list = format_product_list()
@@ -470,6 +412,29 @@ to end, ask them to try again. Once an exact match is found, provide the order s
 If a customer asks for an order detail change, order cancellation, return, or any situation that requires human assistance, politely direct them to the shop's contact number.
 """
 
+def get_gemini_api_key():
+    try:
+        response = requests.get('https://ezbo.org/api/key-manager.php/123456')
+        response.raise_for_status()
+        data = response.json()
+        return data['api_key']
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        raise RuntimeError("Failed to fetch Gemini API key from key manager")
+
+def initialize_text_model():
+    api_key = get_gemini_api_key()
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config={
+            "temperature": 0.3,
+            "top_p": 0.95,
+            "top_k": 30,
+            "max_output_tokens": 8192,
+        }
+    )
+
 def format_product_list():
     return "\n".join([
         f"{p['type']} ({p['category']}) - Size: {', '.join(map(str, p['size']))}, Color: {', '.join(p['color'])}, Image: {p.get('image', 'No image')}, Price: {p['price']}{settings['currency']}"
@@ -536,6 +501,9 @@ def handle_text_message(user_message, last_message):
     try:
         logger.info("Processing text message: %s", user_message)
         
+        # Initialize Gemini model at the start (fetches key once per message)
+        model = initialize_text_model()
+        
         # Check if this is an image attachment
         if "image_url:" in user_message.lower():
             image_url = extract_image_url(user_message)
@@ -557,11 +525,12 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        model = initialize_text_model()
         chat = model.start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
         simplified_response = response.text.strip()
+        
+        # Clean up any remaining formatting characters
         simplified_response = simplified_response.replace("*", "")
         
         # Check if this is an order confirmation
