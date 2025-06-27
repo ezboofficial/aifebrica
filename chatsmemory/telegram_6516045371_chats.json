@@ -118,5 +118,10 @@
     "timestamp": "2025-06-27T23:04:24.100285",
     "role": "User",
     "message": "Wow looks great man"
+  },
+  {
+    "timestamp": "2025-06-27T23:04:26.200286",
+    "role": "AI",
+    "message": "AI: Great! What size do you need?  We have M, L, XL, and XXL."
   }
 ]
