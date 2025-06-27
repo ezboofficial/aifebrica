@@ -83,5 +83,10 @@
     "timestamp": "2025-06-27T23:03:01.339825",
     "role": "User",
     "message": "Great he told me anything else if give me full context i can continue"
+  },
+  {
+    "timestamp": "2025-06-27T23:03:03.230561",
+    "role": "AI",
+    "message": "AI: Sam told me you're interested in buying something from Febrica. What are you looking for?  Shirts, pants, or shoes?  What size and color do you prefer?  And what's your budget?"
   }
 ]
