@@ -4,10 +4,7 @@ import logging
 from flask_cors import CORS
 import requests
 import messageHandler
-from collections import deque
-from brain import query
 from github import Github
-import urllib.parse
 from functools import wraps
 import hashlib
 from dotenv import load_dotenv
@@ -21,8 +18,9 @@ import shutil
 import uuid
 import json
 import threading
-import telegram_bot  # New import for Telegram integration
-import discord_bot  # New import for Discord integration
+import telegram_bot
+import discord_bot
+import page_bot
 
 load_dotenv()
 
@@ -33,8 +31,6 @@ app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
-PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
@@ -43,7 +39,6 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 github = Github(GITHUB_ACCESS_TOKEN)
 repo = github.get_repo(GITHUB_REPO_NAME)
 
-user_memory = {}
 AI_ENABLED = True
 
 def login_required(f):
@@ -57,14 +52,6 @@ def login_required(f):
 
 def is_logged_in():
     return session.get('logged_in')
-
-def update_user_memory(user_id, message):
-    if user_id not in user_memory:
-        user_memory[user_id] = deque(maxlen=20)
-    user_memory[user_id].append(message)
-
-def get_conversation_history(user_id):
-    return "\n".join(user_memory.get(user_id, []))
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -122,8 +109,7 @@ def toggle_ai():
 @app.route('/webhook', methods=['GET'])
 def verify():
     token_sent = request.args.get("hub.verify_token")
-    if token_sent == VERIFY_TOKEN:
-        logger.info("Webhook verification successful.")
+    if page_bot.verify_webhook(token_sent):
         return request.args.get("hub.challenge", "")
     logger.error("Webhook verification failed: invalid verify token.")
     return "Verification failed", 403
@@ -136,267 +122,8 @@ def webhook():
         return "EVENT_RECEIVED", 200
         
     data = request.get_json()
-    logger.info("Received data: %s", data)
-
-    if data.get("object") == "page":
-        for entry in data["entry"]:
-            for event in entry.get("messaging", []):
-                if "message" in event:
-                    sender_id = event["sender"]["id"]
-                    message_text = event["message"].get("text")
-                    message_attachments = event["message"].get("attachments")
-                    
-                    is_thumbs_up = False
-                    if message_attachments:
-                        for attachment in message_attachments:
-                            if attachment.get("type") == "image":
-                                payload = attachment.get("payload", {})
-                                sticker_id = payload.get("sticker_id")
-                                image_url = payload.get("url", "")
-                                
-                                if (sticker_id == "369239263222822" or 
-                                    "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
-                                    is_thumbs_up = True
-                                    send_message(sender_id, "👍")
-                                    continue
-
-                    if is_thumbs_up:
-                        continue
-
-                    image_processed = False
-                    if message_attachments:
-                        for attachment in message_attachments:
-                            if attachment.get("type") == "image" and not is_thumbs_up:
-                                image_url = attachment["payload"].get("url")
-                                if image_url:
-                                    update_user_memory(sender_id, "[User sent an image]")
-                                    response, matched_product = messageHandler.handle_text_message(
-                                        f"image_url: {image_url}", 
-                                        "[Image attachment]"
-                                    )
-                                    send_message(sender_id, response)
-                                    if matched_product:
-                                        update_user_memory(sender_id, response)
-                                    image_processed = True
-                    
-                    if message_text and not image_processed:
-                        update_user_memory(sender_id, message_text)
-                        conversation_history = get_conversation_history(sender_id)
-                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-                        response, _ = messageHandler.handle_text_message(full_message, message_text)
-                        
-                        if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
-                            try:
-                                image_url = response.split(" - ")[-1].strip()
-                                if image_url.startswith(('http://', 'https://')):
-                                    send_image(sender_id, image_url)
-                                    product_text = response.split(" - ")[0]
-                                    if product_text:
-                                        send_message(sender_id, product_text)
-                                        update_user_memory(sender_id, product_text)
-                            except Exception as e:
-                                logger.error(f"Error processing image URL: {str(e)}")
-                                send_message(sender_id, response)
-                                update_user_memory(sender_id, response)
-                        else:
-                            send_message(sender_id, response)
-                            update_user_memory(sender_id, response)
-                    elif not image_processed:
-                        send_message(sender_id, "👍")
-
+    page_bot.handle_facebook_message(data)
     return "EVENT_RECEIVED", 200
-    
-def send_message(recipient_id, message=None):
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    
-    if not isinstance(message, str):
-        message = str(message) if message else "An error occurred while processing your request."
-    
-    data = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": message},
-    }
-
-    try:
-        response = requests.post(
-            "https://graph.facebook.com/v21.0/me/messages",
-            params=params,
-            headers=headers,
-            json=data
-        )
-        if response.status_code == 200:
-            logger.info(f"Message sent to {recipient_id}")
-        else:
-            # Skip logging for "No matching user found" error
-            error_data = response.json()
-            if not (response.status_code == 400 and 
-                   error_data.get("error", {}).get("code") == 100 and 
-                   error_data.get("error", {}).get("error_subcode") == 2018001):
-                logger.error(f"Failed to send message: {response.text}")
-    except Exception as e:
-        logger.error(f"Error sending message: {str(e)}")
-
-def send_image(recipient_id, image_url):
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    headers = {"Content-Type": "application/json"}
-    
-    data = {
-        "recipient": {"id": recipient_id},
-        "message": {
-            "attachment": {
-                "type": "image",
-                "payload": {
-                    "url": image_url,
-                    "is_reusable": True
-                }
-            }
-        }
-    }
-
-    try:
-        response = requests.post(
-            "https://graph.facebook.com/v21.0/me/messages",
-            params=params,
-            headers=headers,
-            json=data
-        )
-        if response.status_code == 200:
-            logger.info(f"Image sent to {recipient_id}")
-        else:
-            # Skip logging for "No matching user found" error
-            error_data = response.json()
-            if not (response.status_code == 400 and 
-                   error_data.get("error", {}).get("code") == 100 and 
-                   error_data.get("error", {}).get("error_subcode") == 2018001):
-                logger.error(f"Failed to send image: {response.text}")
-    except Exception as e:
-        logger.error(f"Error sending image: {str(e)}")
-
-def update_github_repo(products):
-    try:
-        repo = github.get_repo(GITHUB_REPO_NAME)
-        content = repo.get_contents("messageHandler.py")
-        current_content = content.decoded_content.decode("utf-8")
-        start_marker = "# Product List\nproducts = ["
-        end_marker = "\n]"
-        start_index = current_content.find(start_marker)
-        end_index = current_content.find(end_marker, start_index) + len(end_marker)
-
-        if start_index == -1 or end_index == -1:
-            logger.error("Failed to locate products block")
-            return
-
-        updated_content = (
-            current_content[:start_index] +
-            f"# Product List\nproducts = [\n" +
-            ",\n".join([f"    {repr(product)}" for product in products]) +
-            "\n]" +
-            current_content[end_index:]
-        )
-
-        repo.update_file(
-            path="messageHandler.py",
-            message="Update products via dashboard",
-            content=updated_content,
-            sha=content.sha
-        )
-        logger.info("GitHub products updated")
-    except Exception as e:
-        logger.error(f"Failed to update GitHub products: {str(e)}")
-
-def update_github_repo_settings(settings):
-    try:
-        repo = github.get_repo(GITHUB_REPO_NAME)
-        content = repo.get_contents("messageHandler.py")
-        current_content = content.decoded_content.decode("utf-8")
-        
-        delivery_records_str = "[\n"
-        for record in settings['delivery_records']:
-            delivery_records_str += f"        {repr(record)},\n"
-        delivery_records_str += "    ]"
-        
-        new_settings_block = f"""
-# Default settings
-settings = {{
-    "shop_name": "{settings['shop_name']}",
-    "shop_number": "{settings['shop_number']}",
-    "shop_email": "{settings['shop_email']}",
-    "currency": "{settings['currency']}",
-    "ai_name": "{settings['ai_name']}",
-    "payment_methods": {{
-        "cod": {settings['payment_methods']['cod']},
-        "bkash": {settings['payment_methods']['bkash']},
-        "nagad": {settings['payment_methods']['nagad']},
-        "bkash_number": "{settings['payment_methods']['bkash_number']}",
-        "nagad_number": "{settings['payment_methods']['nagad_number']}",
-        "bkash_type": "{settings['payment_methods']['bkash_type']}",
-        "nagad_type": "{settings['payment_methods']['nagad_type']}",
-        "paypal": {settings['payment_methods']['paypal']},
-        "paypal_email": "{settings['payment_methods']['paypal_email']}"
-    }},
-    "delivery_records": {delivery_records_str},
-    "service_products": "{settings['service_products']}",
-    "return_policy": "{settings['return_policy']}"
-}}
-"""
-        start_marker = "# Default settings\nsettings = {"
-        end_marker = "}\n"
-        start_index = current_content.find(start_marker)
-        end_index = current_content.find(end_marker, start_index) + len(end_marker)
-
-        if start_index == -1 or end_index == -1:
-            logger.error("Failed to locate settings block")
-            return
-
-        updated_content = (
-            current_content[:start_index] +
-            new_settings_block.strip() +
-            "\n" +
-            current_content[end_index:]
-        )
-
-        repo.update_file(
-            path="messageHandler.py",
-            message="Update AI settings via dashboard",
-            content=updated_content,
-            sha=content.sha
-        )
-        logger.info("GitHub settings updated")
-    except Exception as e:
-        logger.error(f"Failed to update GitHub settings: {str(e)}")
-        
-def update_github_repo_orders(orders):
-    try:
-        repo = github.get_repo(GITHUB_REPO_NAME)
-        content = repo.get_contents("messageHandler.py")
-        current_content = content.decoded_content.decode("utf-8")
-        start_marker = "# Orders List\norders = ["
-        end_marker = "\n]"
-        start_index = current_content.find(start_marker)
-        end_index = current_content.find(end_marker, start_index) + len(end_marker)
-
-        if start_index == -1 or end_index == -1:
-            logger.error("Failed to locate orders block")
-            return
-
-        updated_content = (
-            current_content[:start_index] +
-            f"# Orders List\norders = [\n" +
-            ",\n".join([f"    {repr(order)}" for order in orders]) +
-            "\n]" +
-            current_content[end_index:]
-        )
-
-        repo.update_file(
-            path="messageHandler.py",
-            message="Update orders via dashboard",
-            content=updated_content,
-            sha=content.sha
-        )
-        logger.info("GitHub orders updated")
-    except Exception as e:
-        logger.error(f"Failed to update GitHub orders: {str(e)}")
 
 @app.route('/orderlists', methods=['GET', 'POST'])
 @login_required
@@ -408,7 +135,7 @@ def order_lists():
             new_status = request.form.get('status')
             messageHandler.update_order_status(order_index, new_status)
             flash("Order status updated successfully!", "success")
-            update_github_repo_orders(messageHandler.get_orders())
+            messageHandler.update_github_repo_orders(messageHandler.get_orders())
         return redirect(url_for('order_lists'))
 
     return render_template('orderlists.html', title="Order Lists", orders=messageHandler.get_orders(), AI_ENABLED=AI_ENABLED)
@@ -421,7 +148,7 @@ def view_order(order_index):
         new_status = request.form.get('status')
         messageHandler.update_order_status(order_index, new_status)
         flash("Order status updated successfully!", "success")
-        update_github_repo_orders(messageHandler.get_orders())
+        messageHandler.update_github_repo_orders(messageHandler.get_orders())
         return redirect(url_for('order_lists'))
     
     return render_template('vieworder.html', title="View Order", order=order, order_index=order_index, settings=messageHandler.get_settings())
@@ -449,12 +176,10 @@ def sales_logs():
 @login_required
 def download_saleslog():
     try:
-        # Create a temporary directory
         temp_dir = tempfile.mkdtemp()
         filename = f"sales_log_{uuid.uuid4().hex}.txt"
         filepath = os.path.join(temp_dir, filename)
         
-        # Write the sales logs to the file in TXT format
         with open(filepath, 'w') as f:
             for log in messageHandler.sales_logs:
                 f.write(f"Name: {log.get('name', 'N/A')}\n")
@@ -471,7 +196,6 @@ def download_saleslog():
                 f.write(f"Date: {log.get('date', 'N/A')}\n")
                 f.write("\n" + "="*50 + "\n\n")
         
-        # Send the file and schedule cleanup
         response = send_from_directory(
             temp_dir,
             filename,
@@ -479,9 +203,7 @@ def download_saleslog():
             mimetype='text/plain'
         )
         
-        # Clean up the temporary directory after sending
         response.call_on_close(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
-        
         return response
     except Exception as e:
         logger.error(f"Error generating sales log download: {str(e)}")
@@ -595,7 +317,7 @@ def stock_lists():
             }
             messageHandler.products.append(new_product)
             flash("Product added successfully!", "success")
-            update_github_repo(messageHandler.products)
+            messageHandler.update_github_repo(messageHandler.products)
         elif action == 'edit':
             product_index = int(request.form.get('product_index'))
             messageHandler.products[product_index] = {
@@ -607,17 +329,14 @@ def stock_lists():
                 "price": int(request.form.get('price'))
             }
             flash("Product updated successfully!", "success")
-            update_github_repo(messageHandler.products)
+            messageHandler.update_github_repo(messageHandler.products)
         elif action == 'remove':
             product_index = int(request.form.get('product_index'))
-            # Get the product image URL before removing the product
             product_image = messageHandler.products[product_index]['image']
-            # Remove the product
             messageHandler.products.pop(product_index)
             flash("Product removed successfully!", "success")
-            update_github_repo(messageHandler.products)
+            messageHandler.update_github_repo(messageHandler.products)
             
-            # Delete the associated image if it exists
             if product_image:
                 try:
                     response = requests.post(
@@ -658,7 +377,7 @@ def ship_setup():
             settings = messageHandler.get_settings()
             settings['delivery_records'].append(new_record)
             messageHandler.update_settings(delivery_records=settings['delivery_records'])
-            update_github_repo_settings(settings)
+            messageHandler.update_github_repo_settings(settings)
             flash("Delivery record added successfully!", "success")
         elif action == 'edit':
             record_index = int(request.form.get('record_index'))
@@ -670,14 +389,14 @@ def ship_setup():
                 'delivery_charge': int(request.form.get('delivery_charge'))
             }
             messageHandler.update_settings(delivery_records=settings['delivery_records'])
-            update_github_repo_settings(settings)
+            messageHandler.update_github_repo_settings(settings)
             flash("Delivery record updated successfully!", "success")
         elif action == 'remove':
             record_index = int(request.form.get('record_index'))
             settings = messageHandler.get_settings()
             settings['delivery_records'].pop(record_index)
             messageHandler.update_settings(delivery_records=settings['delivery_records'])
-            update_github_repo_settings(settings)
+            messageHandler.update_github_repo_settings(settings)
             flash("Delivery record removed successfully!", "success")
         return redirect(url_for('ship_setup'))
 
@@ -727,7 +446,7 @@ def ai_settings():
             return_policy=return_policy
         )
 
-        update_github_repo_settings(messageHandler.get_settings())
+        messageHandler.update_github_repo_settings(messageHandler.get_settings())
 
         flash("Settings updated successfully!", "success")
         return redirect(url_for('ai_settings'))
@@ -756,14 +475,12 @@ def api2():
 
 def send_order_notification(order):
     try:
-        # Get email configuration
         smtp_server = os.getenv("SMTP_SERVER")
         smtp_port = int(os.getenv("SMTP_PORT"))
         smtp_username = os.getenv("SMTP_USERNAME")
         smtp_password = os.getenv("SMTP_PASSWORD")
         email_from = os.getenv("EMAIL_FROM")
         
-        # Get shop email from settings
         settings = messageHandler.get_settings()
         email_to = settings['shop_email']
         
@@ -771,13 +488,11 @@ def send_order_notification(order):
             logger.error("No shop email configured in settings")
             return False
 
-        # Create message
         msg = MIMEMultipart('alternative')
         msg['From'] = email_from
         msg['To'] = email_to
         msg['Subject'] = f"a!Panel - New Order Received : {order['product']}"
 
-        # Email body - HTML version
         html = f"""
         <!DOCTYPE html>
         <html>
@@ -927,7 +642,6 @@ def send_order_notification(order):
         </html>
         """
 
-        # Plain text version for email clients that don't support HTML
         text = f"""
         New Order Notification - a!Panel
         ================================
@@ -949,13 +663,11 @@ def send_order_notification(order):
         This is an automated message from a!Panel.
         """
 
-        # Attach both HTML and plain text versions
         part1 = MIMEText(text, 'plain')
         part2 = MIMEText(html, 'html')
         msg.attach(part1)
         msg.attach(part2)
 
-        # Send email
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_username, smtp_password)
@@ -984,3 +696,6 @@ if __name__ == '__main__':
     
     # Start Telegram bot in main thread
     telegram_bot.main()
+    
+    # Start Facebook Page bot
+    page_bot.run_page_bot()
