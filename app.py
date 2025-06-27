@@ -146,6 +146,7 @@ def webhook():
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
+                    # Skip processing if this is just a thumbs up reaction
                     is_thumbs_up = False
                     if message_attachments:
                         for attachment in message_attachments:
@@ -163,7 +164,10 @@ def webhook():
                     if is_thumbs_up:
                         continue
 
-                    image_processed = False
+                    # Track if we've processed an image
+                    processed_image = False
+                    
+                    # Process image attachments first
                     if message_attachments:
                         for attachment in message_attachments:
                             if attachment.get("type") == "image" and not is_thumbs_up:
@@ -177,9 +181,10 @@ def webhook():
                                     send_message(sender_id, response)
                                     if matched_product:
                                         update_user_memory(sender_id, response)
-                                    image_processed = True
+                                    processed_image = True
                     
-                    if message_text and not image_processed:
+                    # Only process text if we didn't process an image and there is text
+                    if message_text and not processed_image:
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
@@ -201,7 +206,7 @@ def webhook():
                         else:
                             send_message(sender_id, response)
                             update_user_memory(sender_id, response)
-                    elif not image_processed:
+                    elif not processed_image:  # Only send thumbs up if nothing was processed
                         send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
