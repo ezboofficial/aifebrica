@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:57:51.896808",
-    "role": "AI",
-    "message": "Okay, Sam.  Tell Bobby that his brother Sam mentioned Febrica and that I'm here to help him choose something when he gets home."
-  },
-  {
     "timestamp": "2025-06-27T22:59:19.386829",
     "role": "User",
     "message": "No, I mean I'm leaving my phone at home for him and going to the office for work. Once my brother comes and sends you a message, assist him with whatever he wants to see and let him know I already informed you about him."
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:07:18.495616",
     "role": "AI",
     "message": "AI: No, thank you.  Is there anything else I can help you with today?"
+  },
+  {
+    "timestamp": "2025-06-27T23:07:39.119065",
+    "role": "User",
+    "message": "Yeap which shirt i order i forgot it"
   }
 ]
