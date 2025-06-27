@@ -33,5 +33,10 @@
     "timestamp": "2025-06-27T23:58:33.800979",
     "role": "User",
     "message": "I would like to know the status of my order can you play vide a update?"
+  },
+  {
+    "timestamp": "2025-06-27T23:58:35.457602",
+    "role": "AI",
+    "message": "Okay, to check your order status, please provide your name and mobile number exactly as you registered them."
   }
 ]
