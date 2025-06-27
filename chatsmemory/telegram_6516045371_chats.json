@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:56:26.543512",
-    "role": "AI",
-    "message": "Okay, I can help with that! To assist Bobby, I need some information. What kind of product is he interested in (Shirt, Pant, or Shoes)?  What size and color does he prefer?  And what's his budget?"
-  },
-  {
     "timestamp": "2025-06-27T22:57:49.795100",
     "role": "User",
     "message": "Actually he is at school now and he don't have phone i need to go work so thought when he come he can send you message from my phone tell him your brother sam already told about you and give whatever he want ok?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:06:58.540578",
     "role": "AI",
     "message": "No, I don't need anything from your brother.  Is there anything else I can help you with today?"
+  },
+  {
+    "timestamp": "2025-06-27T23:07:16.549640",
+    "role": "User",
+    "message": "I mean you want to say something to him.."
   }
 ]
