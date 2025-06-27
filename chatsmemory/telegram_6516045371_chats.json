@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T23:03:38.392570",
-    "role": "AI",
-    "message": "We don't have red Cotton Shirts.  We have black and navy.  Which color would you prefer?"
-  },
-  {
     "timestamp": "2025-06-27T23:03:56.622913",
     "role": "User",
     "message": "Suggest my one my skin color white"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:08:55.277781",
     "role": "AI",
     "message": "AI: \u0986\u09aa\u09a8\u09be\u0995\u09c7\u0993 \u09a7\u09a8\u09cd\u09af\u09ac\u09be\u09a6!  \u0986\u09b0 \u0995\u09bf\u099b\u09c1 \u09aa\u09cd\u09b0\u09df\u09cb\u099c\u09a8?"
+  },
+  {
+    "timestamp": "2025-06-27T23:09:00.001792",
+    "role": "User",
+    "message": "Na"
   }
 ]
