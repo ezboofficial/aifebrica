@@ -10,63 +10,18 @@
     "message": "Hi there! How can I help you today?"
   },
   {
-    "timestamp": "2025-06-27T22:42:00.524354",
-    "role": "User",
-    "message": "How are you?"
-  },
-  {
-    "timestamp": "2025-06-27T22:42:02.228382",
-    "role": "AI",
-    "message": "I'm doing great, thanks for asking! How can I help you with your Febrica order or inquiry today?"
-  },
-  {
-    "timestamp": "2025-06-27T22:42:12.479560",
-    "role": "User",
-    "message": "My name is sam my friend!"
-  },
-  {
-    "timestamp": "2025-06-27T22:42:14.129751",
-    "role": "AI",
-    "message": "Okay, Sam! How can I help you with Febrica today?"
-  },
-  {
-    "timestamp": "2025-06-27T22:42:31.388339",
-    "role": "User",
-    "message": "Tomorrow my little sister nova birthday"
-  },
-  {
-    "timestamp": "2025-06-27T22:42:33.165127",
-    "role": "AI",
-    "message": "That's lovely!  How can I help you find a gift for Nova from Febrica?"
-  },
-  {
-    "timestamp": "2025-06-27T22:43:03.252228",
-    "role": "User",
-    "message": "I will buy lots things from febrica but i have a condition"
-  },
-  {
-    "timestamp": "2025-06-27T22:43:04.802778",
-    "role": "AI",
-    "message": "Okay, Sam! What's your condition for buying from Febrica?"
-  },
-  {
-    "timestamp": "2025-06-27T22:43:35.749329",
-    "role": "User",
-    "message": "Write a cool line for my sister cake. if i like i will choose product from you."
-  },
-  {
-    "timestamp": "2025-06-27T22:43:37.792467",
-    "role": "AI",
-    "message": "Okay, Sam! How about this for your sister's cake:  \"Happy Birthday, Nova! Shine brighter than ever!\"  Do you like it?  Let me know, and then we can explore Febrica's products."
-  },
-  {
-    "timestamp": "2025-06-27T22:43:55.294608",
+    "timestamp": "2025-06-27T22:43:55.675264",
     "role": "User",
     "message": "Can you add my name as well in this line"
   },
   {
-    "timestamp": "2025-06-27T22:43:57.075951",
+    "timestamp": "2025-06-27T22:43:57.405928",
     "role": "AI",
-    "message": "Okay, Sam! How about: \"Happy Birthday, Nova! Shine brighter than ever, from your big brother Sam!\" Do you like it?  Let me know, and then we can look at Febrica's products."
+    "message": "I'm sorry, I don't understand what line you're referring to.  Could you please clarify?"
+  },
+  {
+    "timestamp": "2025-06-27T22:44:16.596632",
+    "role": "User",
+    "message": "Aah the birthday line"
   }
 ]
