@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:59:19.386829",
-    "role": "User",
-    "message": "No, I mean I'm leaving my phone at home for him and going to the office for work. Once my brother comes and sends you a message, assist him with whatever he wants to see and let him know I already informed you about him."
-  },
-  {
     "timestamp": "2025-06-27T22:59:21.201264",
     "role": "AI",
     "message": "Okay, Sam. I understand.  I'll be here to assist Bobby when he contacts me.  Let him know I'm ready to help him find something he likes from Febrica."
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:07:39.119065",
     "role": "User",
     "message": "Yeap which shirt i order i forgot it"
+  },
+  {
+    "timestamp": "2025-06-27T23:07:40.848086",
+    "role": "AI",
+    "message": "AI: You ordered an XL Navy Cotton Shirt."
   }
 ]
