@@ -60,23 +60,28 @@
     "message": "Okay, Sam. I understand.  I'll be here to assist Bobby when he contacts me.  Let him know I'm ready to help him find something he likes from Febrica."
   },
   {
-    "timestamp": "2025-06-27T23:01:56.533362",
+    "timestamp": "2025-06-27T23:01:57.739670",
     "role": "User",
     "message": "Hey anyone available? I am sam brother"
   },
   {
-    "timestamp": "2025-06-27T23:01:58.370738",
+    "timestamp": "2025-06-27T23:01:59.837427",
     "role": "AI",
     "message": "Hi Bobby!  I'm ready to help you. What are you interested in from Febrica?"
   },
   {
-    "timestamp": "2025-06-27T23:02:33.184390",
+    "timestamp": "2025-06-27T23:02:30.396348",
     "role": "User",
     "message": "How do you know my name?"
   },
   {
-    "timestamp": "2025-06-27T23:02:34.908667",
+    "timestamp": "2025-06-27T23:02:32.078001",
     "role": "AI",
     "message": "Sam told me you were coming to ask about Febrica."
+  },
+  {
+    "timestamp": "2025-06-27T23:03:01.339825",
+    "role": "User",
+    "message": "Great he told me anything else if give me full context i can continue"
   }
 ]
