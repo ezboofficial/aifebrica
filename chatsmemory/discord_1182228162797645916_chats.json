@@ -98,5 +98,10 @@
     "timestamp": "2025-06-27T22:19:37.482219",
     "role": "AI",
     "message": "Okay, Sam.  Let's find Bobby a great gift from Febrica first.  Then we can work on a cake inscription. What does Bobby like?  What size and color clothing does he wear?"
+  },
+  {
+    "timestamp": "2025-06-27T22:20:38.316393",
+    "role": "User",
+    "message": "Ok i will buy a shirt if you say the line please say \ud83d\ude29"
   }
 ]
