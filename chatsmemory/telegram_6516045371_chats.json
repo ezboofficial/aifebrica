@@ -133,5 +133,10 @@
     "timestamp": "2025-06-27T22:48:24.397625",
     "role": "User",
     "message": "Hi i am sam sister he is in bathroom."
+  },
+  {
+    "timestamp": "2025-06-27T22:48:26.221012",
+    "role": "AI",
+    "message": "AI: Hi!  How can I help you today?"
   }
 ]
