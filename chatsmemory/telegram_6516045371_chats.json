@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:57:49.795100",
-    "role": "User",
-    "message": "Actually he is at school now and he don't have phone i need to go work so thought when he come he can send you message from my phone tell him your brother sam already told about you and give whatever he want ok?"
-  },
-  {
     "timestamp": "2025-06-27T22:57:51.896808",
     "role": "AI",
     "message": "Okay, Sam.  Tell Bobby that his brother Sam mentioned Febrica and that I'm here to help him choose something when he gets home."
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:07:16.549640",
     "role": "User",
     "message": "I mean you want to say something to him.."
+  },
+  {
+    "timestamp": "2025-06-27T23:07:18.495616",
+    "role": "AI",
+    "message": "AI: No, thank you.  Is there anything else I can help you with today?"
   }
 ]
