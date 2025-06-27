@@ -78,5 +78,10 @@
     "timestamp": "2025-06-27T22:46:31.504635",
     "role": "AI",
     "message": "Okay, I'm ready for your Febrica order!"
+  },
+  {
+    "timestamp": "2025-06-27T22:46:41.768250",
+    "role": "User",
+    "message": "Wait i forgot you name shit"
   }
 ]
