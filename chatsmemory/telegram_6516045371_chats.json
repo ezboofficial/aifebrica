@@ -123,5 +123,10 @@
     "timestamp": "2025-06-27T22:48:01.018860",
     "role": "User",
     "message": "Ok bye"
+  },
+  {
+    "timestamp": "2025-06-27T22:48:02.702530",
+    "role": "AI",
+    "message": "Okay, bye Sam!"
   }
 ]
