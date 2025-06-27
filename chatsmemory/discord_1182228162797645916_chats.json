@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:14:49.854416",
-    "role": "AI",
-    "message": "Hi there! How can I help you today?"
-  },
-  {
     "timestamp": "2025-06-27T22:14:54.643000",
     "role": "User",
     "message": "How are you?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T22:26:18.414702",
     "role": "User",
     "message": "Cod"
+  },
+  {
+    "timestamp": "2025-06-27T22:26:20.533287",
+    "role": "AI",
+    "message": "Okay, Sam.  Your order will be delivered COD. I need your name, mobile number, and address to complete the order."
   }
 ]
