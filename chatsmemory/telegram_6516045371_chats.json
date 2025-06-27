@@ -20,22 +20,22 @@
     "message": "I'm Ruhi, your AI assistant from Febrica.  I can help with product information and orders."
   },
   {
-    "timestamp": "2025-06-27T23:58:00.721687",
+    "timestamp": "2025-06-27T23:57:58.776120",
     "role": "User",
     "message": "Can you help me with my online orders?"
   },
   {
-    "timestamp": "2025-06-27T23:58:02.672393",
+    "timestamp": "2025-06-27T23:58:00.624496",
     "role": "AI",
     "message": "Sure!  What's your name and mobile number?"
   },
   {
-    "timestamp": "2025-06-27T23:58:33.800979",
+    "timestamp": "2025-06-27T23:58:35.766126",
     "role": "User",
     "message": "I would like to know the status of my order can you play vide a update?"
   },
   {
-    "timestamp": "2025-06-27T23:58:35.457602",
+    "timestamp": "2025-06-27T23:58:37.346170",
     "role": "AI",
     "message": "Okay, to check your order status, please provide your name and mobile number exactly as you registered them."
   }
