@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:55:36.592292",
-    "role": "AI",
-    "message": "Hi Sam! What can I help you with today?"
-  },
-  {
     "timestamp": "2025-06-27T22:55:49.016512",
     "role": "User",
     "message": "Tell me how can you help me?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:05:29.505611",
     "role": "AI",
     "message": "AI: Okay, Bobby. Your order has been placed!\n   - Name: Bobby\n   - Mobile: 0170980618398\n   - Address: Dhaka Mirpur 10\n   - Product: Cotton Shirt (XL, Navy)\n   - Price: 800BDT\n   - Payment Method: COD\n   - Total: 860BDT"
+  },
+  {
+    "timestamp": "2025-06-27T23:06:38.979976",
+    "role": "User",
+    "message": "Thanks bye ruhi \ud83d\ude0a"
   }
 ]
