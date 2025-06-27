@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 
-# User memory for conversation history and message deduplication
+# User memory for conversation history and last message tracking
 user_memory = {}
-processed_messages = set()  # Track processed message IDs
+last_user_message = {}  # {user_id: last_message_text}
 
 def update_user_memory(user_id, message):
     if user_id not in user_memory:
@@ -53,7 +53,6 @@ def send_message(recipient_id, message=None):
         if response.status_code == 200:
             logger.info(f"Message sent to {recipient_id}")
         else:
-            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -89,7 +88,6 @@ def send_image(recipient_id, image_url):
         if response.status_code == 200:
             logger.info(f"Image sent to {recipient_id}")
         else:
-            # Skip logging for "No matching user found" error
             error_data = response.json()
             if not (response.status_code == 400 and 
                    error_data.get("error", {}).get("code") == 100 and 
@@ -104,18 +102,19 @@ def handle_facebook_message(data):
     if data.get("object") == "page":
         for entry in data["entry"]:
             for event in entry.get("messaging", []):
-                # Skip if we've already processed this message
-                message_id = event.get("message", {}).get("mid")
-                if message_id in processed_messages:
-                    logger.info(f"Skipping already processed message: {message_id}")
-                    continue
-                
-                processed_messages.add(message_id)
-                
                 if "message" in event:
                     sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
+                    
+                    # Skip if this is the same message as last time from this user
+                    if sender_id in last_user_message and message_text == last_user_message[sender_id]:
+                        logger.info(f"Skipping duplicate message from user {sender_id}")
+                        continue
+                    
+                    # Update last message
+                    if message_text:
+                        last_user_message[sender_id] = message_text
                     
                     is_thumbs_up = False
                     if message_attachments:
