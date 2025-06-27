@@ -60,16 +60,17 @@ class DiscordBot(commands.Bot):
                         # Send the response
                         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                             try:
-                                image_url = response.split(" - ")[-1].strip()
-                                product_text = response.split(" - ")[0]
+                                parts = response.split(" - ")
+                                product_text = parts[0]
+                                image_url = parts[-1].strip()
                                 
                                 # Download image
                                 image_response = requests.get(image_url)
                                 if image_response.status_code == 200:
-                                    # Send image
+                                    # Send image with proper file handling
                                     await message.channel.send(
                                         content=product_text,
-                                        file=discord.File(BytesIO(image_response.content), filename='product.png'
+                                        file=discord.File(BytesIO(image_response.content), filename='product.png')
                                     )
                                 else:
                                     await message.channel.send(response)
@@ -97,13 +98,14 @@ class DiscordBot(commands.Bot):
             # Check if response contains an image URL
             if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
                 try:
-                    image_url = response.split(" - ")[-1].strip()
-                    product_text = response.split(" - ")[0]
+                    parts = response.split(" - ")
+                    product_text = parts[0]
+                    image_url = parts[-1].strip()
                     
                     # Download image
                     image_response = requests.get(image_url)
                     if image_response.status_code == 200:
-                        # Send image
+                        # Send image with proper file handling
                         await message.channel.send(
                             content=product_text,
                             file=discord.File(BytesIO(image_response.content), filename='product.png')
