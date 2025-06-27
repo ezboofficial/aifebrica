@@ -143,5 +143,10 @@
     "timestamp": "2025-06-27T23:04:42.446987",
     "role": "AI",
     "message": "AI: Okay, to place your order, I need your name, mobile number, and delivery address."
+  },
+  {
+    "timestamp": "2025-06-27T23:05:13.408460",
+    "role": "User",
+    "message": "My name you know.\nMobile number : 0170980618398\nAddress : dhaka Mirpur 10"
   }
 ]
