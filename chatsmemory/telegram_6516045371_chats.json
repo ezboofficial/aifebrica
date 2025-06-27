@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:55:00.289912",
-    "role": "AI",
-    "message": "Hi there! How can I help you today?"
-  },
-  {
     "timestamp": "2025-06-27T22:55:34.865257",
     "role": "User",
     "message": "My name is sam"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T23:05:15.910733",
     "role": "AI",
     "message": "AI: Okay, Bobby.  To confirm: Name: Bobby, Mobile: 0170980618398, Address: Dhaka Mirpur 10, Product: Cotton Shirt (XL, Navy), Price: 800BDT.  Inside Dhaka delivery is 60BDT. Total: 860BDT. We accept Bkash (01709805177) and COD. Which payment method would you prefer?"
+  },
+  {
+    "timestamp": "2025-06-27T23:05:24.163594",
+    "role": "User",
+    "message": "Cod"
   }
 ]
