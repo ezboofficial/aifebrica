@@ -33,5 +33,10 @@
     "timestamp": "2025-06-27T22:44:59.049554",
     "role": "User",
     "message": "I will buy lots things from febrica but i have a condition"
+  },
+  {
+    "timestamp": "2025-06-27T22:45:01.007647",
+    "role": "AI",
+    "message": "Okay, I understand. What is your condition for buying from Febrica?"
   }
 ]
