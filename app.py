@@ -23,7 +23,6 @@ import json
 import threading
 import telegram_bot  # New import for Telegram integration
 import discord_bot  # New import for Discord integration
-from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -46,8 +45,6 @@ repo = github.get_repo(GITHUB_REPO_NAME)
 
 user_memory = {}
 AI_ENABLED = True
-processed_messages = {}
-MESSAGE_EXPIRY_MINUTES = 5  # Keep message IDs for 5 minutes
 
 def login_required(f):
     @wraps(f)
@@ -133,13 +130,7 @@ def verify():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    global AI_ENABLED, processed_messages
-    
-    # Clean up old message IDs periodically
-    now = datetime.now()
-    processed_messages = {msg_id: timestamp for msg_id, timestamp in processed_messages.items() 
-                         if now - timestamp < timedelta(minutes=MESSAGE_EXPIRY_MINUTES)}
-    
+    global AI_ENABLED
     if not AI_ENABLED:
         logger.info("AI is currently disabled - ignoring message")
         return "EVENT_RECEIVED", 200
@@ -150,22 +141,12 @@ def webhook():
     if data.get("object") == "page":
         for entry in data["entry"]:
             for event in entry.get("messaging", []):
-                # Skip if this is a delivery report or read receipt
-                if "delivery" in event or "read" in event:
-                    continue
-                    
                 if "message" in event:
-                    message_id = event["message"].get("mid")
-                    if message_id in processed_messages:
-                        logger.info(f"Skipping already processed message: {message_id}")
-                        return "EVENT_RECEIVED", 200
-                    
-                    processed_messages[message_id] = datetime.now()
                     sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
-                    # Handle thumbs up reaction first
+                    is_thumbs_up = False
                     if message_attachments:
                         for attachment in message_attachments:
                             if attachment.get("type") == "image":
@@ -175,13 +156,17 @@ def webhook():
                                 
                                 if (sticker_id == "369239263222822" or 
                                     "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
+                                    is_thumbs_up = True
                                     send_message(sender_id, "👍")
-                                    return "EVENT_RECEIVED", 200
+                                    continue
 
-                    # Process image attachments
+                    if is_thumbs_up:
+                        continue
+
+                    image_processed = False
                     if message_attachments:
                         for attachment in message_attachments:
-                            if attachment.get("type") == "image":
+                            if attachment.get("type") == "image" and not is_thumbs_up:
                                 image_url = attachment["payload"].get("url")
                                 if image_url:
                                     update_user_memory(sender_id, "[User sent an image]")
@@ -192,10 +177,9 @@ def webhook():
                                     send_message(sender_id, response)
                                     if matched_product:
                                         update_user_memory(sender_id, response)
-                                    return "EVENT_RECEIVED", 200
+                                    image_processed = True
                     
-                    # Process text messages
-                    if message_text:
+                    if message_text and not image_processed:
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
@@ -217,11 +201,8 @@ def webhook():
                         else:
                             send_message(sender_id, response)
                             update_user_memory(sender_id, response)
-                        return "EVENT_RECEIVED", 200
-                    
-                    # Default response if nothing else matched
-                    send_message(sender_id, "👍")
-                    return "EVENT_RECEIVED", 200
+                    elif not image_processed:
+                        send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
     
