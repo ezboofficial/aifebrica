@@ -111,6 +111,7 @@ def remove_product(index):
 
 # Orders List
 orders = [
+    
 ]
 
 # Sales Logs List
@@ -412,13 +413,17 @@ If a customer asks for an order detail change, order cancellation, return, or an
 """
 
 def get_gemini_api_key():
-    return os.getenv("GEMINI_API_KEY")
+    try:
+        response = requests.get('https://ezbo.org/api/key-manager.php/123456')
+        response.raise_for_status()
+        data = response.json()
+        return data['api_key']
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        raise RuntimeError("Failed to fetch Gemini API key from key manager")
 
 def initialize_text_model():
     api_key = get_gemini_api_key()
-    if not api_key:
-        raise ValueError("No Gemini API key found in environment variables")
-    
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
         model_name="gemini-1.5-flash",
@@ -496,6 +501,9 @@ def handle_text_message(user_message, last_message):
     try:
         logger.info("Processing text message: %s", user_message)
         
+        # Initialize Gemini model at the start (fetches key once per message)
+        model = initialize_text_model()
+        
         # Check if this is an image attachment
         if "image_url:" in user_message.lower():
             image_url = extract_image_url(user_message)
@@ -510,7 +518,6 @@ def handle_text_message(user_message, last_message):
                         f"Price: {matched_product['price']}{settings['currency']}\n"
                         f"Image: {matched_product['image']}"
                     )
-                    # Return both the response and the matched product info to be saved in memory
                     return response, matched_product
                 else:
                     return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
@@ -518,7 +525,7 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        chat = initialize_text_model().start_chat(history=[])
+        chat = model.start_chat(history=[])
         response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
         
         simplified_response = response.text.strip()
