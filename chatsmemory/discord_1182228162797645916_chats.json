@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:14:56.388621",
-    "role": "AI",
-    "message": "I'm doing great, thanks for asking! How can I help you with your Febrica order or product inquiry today?"
-  },
-  {
     "timestamp": "2025-06-27T22:15:08.433671",
     "role": "User",
     "message": "My name is sam bro"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T22:27:01.091570",
     "role": "User",
     "message": "Abdur Rahman \n01709805177\nDhaka, Mirpur Sector 12"
+  },
+  {
+    "timestamp": "2025-06-27T22:27:06.897523",
+    "role": "AI",
+    "message": "AI: Okay, Sam. Your order has been placed!\n   - Name: Abdur Rahman\n   - Mobile: 01709805177\n   - Address: Dhaka, Mirpur Sector 12\n   - Product: Cotton Shirt (XL, Black)\n   - Price: 800BDT\n   - Payment Method: COD\n   - Total: 860BDT"
   }
 ]
