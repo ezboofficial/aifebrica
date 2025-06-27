@@ -1,10 +1,5 @@
 [
   {
-    "timestamp": "2025-06-27T22:14:47.880078",
-    "role": "User",
-    "message": "HI"
-  },
-  {
     "timestamp": "2025-06-27T22:14:49.854416",
     "role": "AI",
     "message": "Hi there! How can I help you today?"
@@ -148,5 +143,10 @@
     "timestamp": "2025-06-27T22:26:10.136559",
     "role": "AI",
     "message": "Okay, Sam. That's 800BDT + 60BDT delivery = 860BDT total.  We accept Bkash (01709805177) or COD. Which do you prefer?"
+  },
+  {
+    "timestamp": "2025-06-27T22:26:18.414702",
+    "role": "User",
+    "message": "Cod"
   }
 ]
