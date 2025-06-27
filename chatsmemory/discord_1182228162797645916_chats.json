@@ -103,5 +103,10 @@
     "timestamp": "2025-06-27T22:20:38.316393",
     "role": "User",
     "message": "Ok i will buy a shirt if you say the line please say \ud83d\ude29"
+  },
+  {
+    "timestamp": "2025-06-27T22:20:40.425670",
+    "role": "AI",
+    "message": "Okay, Sam.  Let's get Bobby a shirt from Febrica. What size and color would he like?  Once we've chosen the shirt, I can help you with a cake inscription."
   }
 ]
