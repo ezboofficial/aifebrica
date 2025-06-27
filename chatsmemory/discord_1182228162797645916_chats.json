@@ -138,5 +138,10 @@
     "timestamp": "2025-06-27T22:22:14.143812",
     "role": "AI",
     "message": "Okay, Sam. How about: \"Happy Birthday, Bobby! Love, Sam.\"  Now, for the Cotton Shirt, inside or outside Dhaka for delivery?"
+  },
+  {
+    "timestamp": "2025-06-27T22:26:07.437609",
+    "role": "User",
+    "message": "Inside"
   }
 ]
