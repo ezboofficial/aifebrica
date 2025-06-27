@@ -23,11 +23,17 @@ TELEGRAM_ADMIN_ID = os.getenv("TELEGRAM_ADMIN_ID")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send a message when the command /start is issued."""
-    await update.message.reply_text('Hi! I am your shop assistant. How can I help you today?')
+    user_id = str(update.message.from_user.id)
+    welcome_message = 'Hi! I am your shop assistant. How can I help you today?'
+    update_user_memory("telegram", user_id, welcome_message, is_user=False)
+    await update.message.reply_text(welcome_message)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send a message when the command /help is issued."""
-    await update.message.reply_text('I can help you with product inquiries and orders. Just send me a message!')
+    user_id = str(update.message.from_user.id)
+    help_message = 'I can help you with product inquiries and orders. Just send me a message!'
+    update_user_memory("telegram", user_id, help_message, is_user=False)
+    await update.message.reply_text(help_message)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming messages."""
@@ -44,14 +50,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Format the image URL for processing
             formatted_image_url = f"image_url: {image_url}"
-            update_user_memory("telegram", user_id, "[User sent an image]")
+            update_user_memory("telegram", user_id, "[User sent an image]", is_user=True)
             
             # Process the image directly through messageHandler
             response, matched_product = handle_text_message(formatted_image_url, "[Image attachment]")
             logger.info(f"Image processing response: {response}")
             
             if matched_product:
-                update_user_memory("telegram", user_id, response)
+                update_user_memory("telegram", user_id, response, is_user=False)
             
             # Send the response
             if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
@@ -76,6 +82,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(response)
             return
                 
+        # Store user message with proper role
+        if message_text:
+            update_user_memory("telegram", user_id, message_text, is_user=True)
+        
         # Get conversation history
         conversation_history = get_conversation_history("telegram", user_id)
         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
@@ -83,9 +93,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Process the message through your existing handler
         response, matched_product = handle_text_message(full_message, message_text)
         
-        # Update memory with the response if it's not an image
+        # Update memory with the AI response
         if not (" - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif'])):
-            update_user_memory("telegram", user_id, response)
+            update_user_memory("telegram", user_id, response, is_user=False)
         
         # Check if response contains an image URL
         if " - http" in response and any(ext in response.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif']):
@@ -111,11 +121,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
     except Exception as e:
         logger.error(f"Error in handle_message: {str(e)}")
-        await update.message.reply_text("Sorry, I encountered an error processing your message.")
+        error_message = "Sorry, I encountered an error processing your message."
+        update_user_memory("telegram", user_id, error_message, is_user=False)
+        await update.message.reply_text(error_message)
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Log errors."""
     logger.error(f'Update {update} caused error {context.error}')
+    if update and update.message:
+        user_id = str(update.message.from_user.id)
+        error_message = "An error occurred. Please try again."
+        update_user_memory("telegram", user_id, error_message, is_user=False)
+        await update.message.reply_text(error_message)
 
 def main():
     """Start the bot."""
