@@ -8,5 +8,10 @@
     "timestamp": "2025-06-27T23:39:24.530756",
     "role": "AI",
     "message": "Hi there! How can I help you today?"
+  },
+  {
+    "timestamp": "2025-06-27T23:54:58.717562",
+    "role": "User",
+    "message": "Are you a human?"
   }
 ]
