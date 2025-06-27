@@ -139,14 +139,18 @@ def webhook():
     logger.info("Received data: %s", data)
 
     if data.get("object") == "page":
-        for entry in data["entry"]:
-            for event in entry.get("messaging", []):
+        # Process only the first entry and first messaging event to prevent duplicates
+        if data["entry"]:
+            entry = data["entry"][0]  # Take only the first entry
+            if "messaging" in entry:
+                event = entry["messaging"][0]  # Take only the first messaging event
+                
                 if "message" in event:
                     sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
-                    # Skip processing if this is just a thumbs up reaction
+                    # Skip processing if this is a thumbs up reaction
                     is_thumbs_up = False
                     if message_attachments:
                         for attachment in message_attachments:
@@ -159,18 +163,13 @@ def webhook():
                                     "39178562_1505197616293642_5411344281094848512_n.png" in image_url):
                                     is_thumbs_up = True
                                     send_message(sender_id, "👍")
-                                    continue
+                                    return "EVENT_RECEIVED", 200
 
-                    if is_thumbs_up:
-                        continue
-
-                    # Track if we've processed an image
-                    processed_image = False
-                    
-                    # Process image attachments first
-                    if message_attachments:
+                    # Process image attachments
+                    image_processed = False
+                    if message_attachments and not is_thumbs_up:
                         for attachment in message_attachments:
-                            if attachment.get("type") == "image" and not is_thumbs_up:
+                            if attachment.get("type") == "image":
                                 image_url = attachment["payload"].get("url")
                                 if image_url:
                                     update_user_memory(sender_id, "[User sent an image]")
@@ -181,10 +180,11 @@ def webhook():
                                     send_message(sender_id, response)
                                     if matched_product:
                                         update_user_memory(sender_id, response)
-                                    processed_image = True
+                                    image_processed = True
+                                    return "EVENT_RECEIVED", 200  # Return after processing image
                     
-                    # Only process text if we didn't process an image and there is text
-                    if message_text and not processed_image:
+                    # Process text messages
+                    if message_text and not image_processed:
                         update_user_memory(sender_id, message_text)
                         conversation_history = get_conversation_history(sender_id)
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
@@ -206,8 +206,10 @@ def webhook():
                         else:
                             send_message(sender_id, response)
                             update_user_memory(sender_id, response)
-                    elif not processed_image:  # Only send thumbs up if nothing was processed
+                        return "EVENT_RECEIVED", 200  # Return after processing text
+                    elif not image_processed:
                         send_message(sender_id, "👍")
+                        return "EVENT_RECEIVED", 200  # Return after sending thumbs up
 
     return "EVENT_RECEIVED", 200
     
