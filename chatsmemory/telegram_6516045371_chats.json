@@ -143,5 +143,10 @@
     "timestamp": "2025-06-27T22:48:35.597150",
     "role": "User",
     "message": "Did you know me?"
+  },
+  {
+    "timestamp": "2025-06-27T22:48:37.579976",
+    "role": "AI",
+    "message": "AI: No, I don't remember previous conversations.  How can I help you with your Febrica order?"
   }
 ]
