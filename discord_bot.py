@@ -68,8 +68,8 @@ class DiscordBot(commands.Bot):
                                 if image_response.status_code == 200:
                                     # Send image
                                     await message.channel.send(
-                                        product_text, 
-                                        file=discord.File(BytesIO(image_response.content), 'image.png'
+                                        content=product_text,
+                                        file=discord.File(BytesIO(image_response.content), filename='image.png')
                                     )
                                     update_user_memory(user_id, "discord", product_text, sender="ai")
                                 else:
@@ -109,8 +109,8 @@ class DiscordBot(commands.Bot):
                     if image_response.status_code == 200:
                         # Send image
                         await message.channel.send(
-                            product_text, 
-                            file=discord.File(BytesIO(image_response.content), 'image.png'
+                            content=product_text,
+                            file=discord.File(BytesIO(image_response.content), filename='image.png')
                         )
                         update_user_memory(user_id, "discord", product_text, sender="ai")
                     else:
