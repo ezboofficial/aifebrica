@@ -48,5 +48,10 @@
     "timestamp": "2025-06-27T22:43:04.802778",
     "role": "AI",
     "message": "Okay, Sam! What's your condition for buying from Febrica?"
+  },
+  {
+    "timestamp": "2025-06-27T22:43:35.749329",
+    "role": "User",
+    "message": "Write a cool line for my sister cake. if i like i will choose product from you."
   }
 ]
