@@ -118,5 +118,10 @@
     "timestamp": "2025-06-27T22:21:01.951401",
     "role": "AI",
     "message": "Okay, Sam. We have the Cotton Shirt in XL, Black. That's 800BDT.  Inside or outside Dhaka for delivery?"
+  },
+  {
+    "timestamp": "2025-06-27T22:21:26.470598",
+    "role": "User",
+    "message": "Tell me the cake line now i choose the shirt as you said."
   }
 ]
