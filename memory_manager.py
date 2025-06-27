@@ -1,75 +1,114 @@
 import os
 import json
-from datetime import datetime, timedelta
-from collections import deque
+from datetime import datetime
+from github import Github
+from dotenv import load_dotenv
+import logging
 
-CHATS_MEMORY_DIR = "chatsmemory"
-MAX_MESSAGES = 60  # 30 pairs (user + AI)
-MESSAGE_RETENTION_DAYS = 30
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+MEMORY_DIR = "chatsmemory"
+MAX_MESSAGES = 30
 
 def ensure_memory_dir():
-    """Ensure the chatsmemory directory exists"""
-    if not os.path.exists(CHATS_MEMORY_DIR):
-        os.makedirs(CHATS_MEMORY_DIR)
+    """Ensure the memory directory exists"""
+    if not os.path.exists(MEMORY_DIR):
+        os.makedirs(MEMORY_DIR)
 
-def get_user_file_path(user_id, platform):
-    """Get the file path for a user's chat memory"""
-    return os.path.join(CHATS_MEMORY_DIR, f"{platform}_{user_id}_chats.json")
+def get_memory_filename(platform, user_id):
+    """Generate memory filename for a user"""
+    return os.path.join(MEMORY_DIR, f"{platform}_{user_id}_chats.json")
 
-def update_user_memory(user_id, platform, message, sender="user"):
-    """Update user's chat memory with a new message"""
+def update_user_memory(platform, user_id, message):
+    """Update user memory with a new message"""
     ensure_memory_dir()
-    file_path = get_user_file_path(user_id, platform)
+    filename = get_memory_filename(platform, user_id)
     
     try:
         # Load existing messages
-        if os.path.exists(file_path):
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-                messages = deque(data['messages'], maxlen=MAX_MESSAGES)
-                last_cleaned = datetime.fromisoformat(data['last_cleaned'])
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                messages = json.load(f)
         else:
-            messages = deque(maxlen=MAX_MESSAGES)
-            last_cleaned = datetime.now()
+            messages = []
         
-        # Add new message with timestamp and sender
-        prefix = "User:" if sender == "user" else "AI:"
+        # Add new message with timestamp
         messages.append({
-            "text": f"{prefix} {message}",
             "timestamp": datetime.now().isoformat(),
-            "sender": sender
+            "message": message
         })
         
-        # Clean old messages if it's been a while
-        if datetime.now() - last_cleaned > timedelta(days=1):
-            cutoff = datetime.now() - timedelta(days=MESSAGE_RETENTION_DAYS)
-            messages = deque(
-                [msg for msg in messages if datetime.fromisoformat(msg['timestamp']) > cutoff],
-                maxlen=MAX_MESSAGES
-            )
-            last_cleaned = datetime.now()
+        # Keep only the last MAX_MESSAGES
+        messages = messages[-MAX_MESSAGES:]
         
         # Save to file
-        with open(file_path, 'w') as f:
-            json.dump({
-                "messages": list(messages),
-                "last_cleaned": last_cleaned.isoformat()
-            }, f)
+        with open(filename, 'w') as f:
+            json.dump(messages, f, indent=2)
             
+        # Update GitHub repository
+        update_github_repo(filename, messages)
+        
     except Exception as e:
-        print(f"Error updating user memory: {e}")
+        logger.error(f"Error updating user memory: {str(e)}")
 
-def get_conversation_history(user_id, platform):
-    """Get user's conversation history"""
-    file_path = get_user_file_path(user_id, platform)
+def get_conversation_history(platform, user_id):
+    """Get conversation history for a user"""
+    filename = get_memory_filename(platform, user_id)
     
-    if not os.path.exists(file_path):
+    if not os.path.exists(filename):
         return ""
     
     try:
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-            return "\n".join([msg['text'] for msg in data['messages']])
+        with open(filename, 'r') as f:
+            messages = json.load(f)
+        
+        # Format messages as "User/AI: message"
+        formatted = []
+        for msg in messages:
+            role = "User" if msg['message'].startswith("[User") else "AI"
+            formatted.append(f"{role}: {msg['message']}")
+            
+        return "\n".join(formatted)
     except Exception as e:
-        print(f"Error reading user memory: {e}")
+        logger.error(f"Error reading conversation history: {str(e)}")
         return ""
+
+def update_github_repo(filename, content):
+    """Update GitHub repository with memory changes"""
+    try:
+        github = Github(os.getenv("GITHUB_ACCESS_TOKEN"))
+        repo = github.get_repo(os.getenv("GITHUB_REPO_NAME"))
+        
+        # Convert content to string if it's not already
+        if not isinstance(content, str):
+            content = json.dumps(content, indent=2)
+        
+        # Try to get the file first
+        try:
+            file_content = repo.get_contents(filename)
+            repo.update_file(
+                path=filename,
+                message="Update chat memory via chatbot",
+                content=content,
+                sha=file_content.sha
+            )
+        except Exception as e:
+            if "404" in str(e):  # File doesn't exist
+                repo.create_file(
+                    path=filename,
+                    message="Initialize chat memory file",
+                    content=content,
+                    branch="main"
+                )
+        
+        logger.info(f"GitHub repository updated with memory changes for {filename}")
+    except Exception as e:
+        logger.error(f"Failed to update GitHub repository with memory changes: {str(e)}")
