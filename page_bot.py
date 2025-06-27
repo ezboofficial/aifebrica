@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 
-# User memory for conversation history
+# User memory for conversation history and message deduplication
 user_memory = {}
+processed_messages = set()  # Track processed message IDs
 
 def update_user_memory(user_id, message):
     if user_id not in user_memory:
@@ -103,6 +104,14 @@ def handle_facebook_message(data):
     if data.get("object") == "page":
         for entry in data["entry"]:
             for event in entry.get("messaging", []):
+                # Skip if we've already processed this message
+                message_id = event.get("message", {}).get("mid")
+                if message_id in processed_messages:
+                    logger.info(f"Skipping already processed message: {message_id}")
+                    continue
+                
+                processed_messages.add(message_id)
+                
                 if "message" in event:
                     sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
