@@ -113,5 +113,10 @@
     "timestamp": "2025-06-28T00:18:05.074398",
     "role": "User",
     "message": "Bye Ruhi"
+  },
+  {
+    "timestamp": "2025-06-28T00:18:06.570281",
+    "role": "AI",
+    "message": "Goodbye Sam!"
   }
 ]
