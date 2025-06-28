@@ -48,5 +48,10 @@
     "timestamp": "2025-06-28T00:16:46.996056",
     "role": "AI",
     "message": "Okay, Sam.  What would you like to order from Febrica today?"
+  },
+  {
+    "timestamp": "2025-06-28T00:16:53.778114",
+    "role": "User",
+    "message": "I want to buy shirt"
   }
 ]
