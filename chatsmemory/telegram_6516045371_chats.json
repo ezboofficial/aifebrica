@@ -53,5 +53,10 @@
     "timestamp": "2025-06-28T00:00:43.626336",
     "role": "User",
     "message": "Can you tell me more about your product features?"
+  },
+  {
+    "timestamp": "2025-06-28T00:00:45.519922",
+    "role": "AI",
+    "message": "Sure! Which product are you interested in?  I need to know the product name to tell you about its features."
   }
 ]
