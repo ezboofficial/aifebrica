@@ -8,5 +8,10 @@
     "timestamp": "2025-06-28T01:14:11.861643",
     "role": "User",
     "message": "Hey! How can I help you today?"
+  },
+  {
+    "timestamp": "2025-06-28T01:14:15.052508",
+    "role": "User",
+    "message": "How are you?"
   }
 ]
