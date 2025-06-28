@@ -83,5 +83,10 @@
     "timestamp": "2025-06-28T00:22:45.206095",
     "role": "User",
     "message": "What's your name?"
+  },
+  {
+    "timestamp": "2025-06-28T00:22:46.812714",
+    "role": "AI",
+    "message": "I'm Ruhi, your AI assistant from Febrica."
   }
 ]
