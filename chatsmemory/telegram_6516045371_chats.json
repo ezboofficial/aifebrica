@@ -43,5 +43,10 @@
     "timestamp": "2025-06-28T01:36:28.782225",
     "role": "User",
     "message": "So you are not human"
+  },
+  {
+    "timestamp": "2025-06-28T01:36:30.649313",
+    "role": "AI",
+    "message": "AI: That's correct. I'm an AI assistant.  How can I help you with Febrica today?"
   }
 ]
