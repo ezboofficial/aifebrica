@@ -35,6 +35,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = str(update.message.from_user.id)
         message_text = update.message.text if update.message.text else ""
         
+        # Save user message to memory first
+        if message_text:
+            update_user_memory("telegram", user_id, message_text)
+            
         # Handle photo attachments
         if update.message.photo:
             # Get the highest quality photo
