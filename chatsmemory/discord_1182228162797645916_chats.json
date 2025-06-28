@@ -83,5 +83,10 @@
     "timestamp": "2025-06-28T00:17:20.972417",
     "role": "User",
     "message": "Cod"
+  },
+  {
+    "timestamp": "2025-06-28T00:17:26.321654",
+    "role": "AI",
+    "message": "Okay, Sam. Your order has been placed!\n   - Name: Sam\n   - Mobile: [Number - needs to be provided by user]\n   - Address: Dhaka Uttora Sector 12\n   - Product: Cotton Shirt (XL, Black)\n   - Price: 800BDT\n   - Payment Method: COD\n   - Total: 860BDT"
   }
 ]
