@@ -93,5 +93,10 @@
     "timestamp": "2025-06-28T02:41:55.908960",
     "role": "User",
     "message": "Let's talk normally"
+  },
+  {
+    "timestamp": "2025-06-28T02:41:57.462421",
+    "role": "AI",
+    "message": "Okay! How can I help you with Febrica today?"
   }
 ]
