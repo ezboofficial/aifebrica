@@ -49,17 +49,18 @@ def update_user_memory(platform, user_id, message, is_user=None):
                                   "How can I help", "Here is", "You can", "We have"))
             ])
         
-        # Remove any existing role prefix from the message
-        if message.startswith("AI: "):
-            message = message[4:].strip()
-        elif message.startswith("User: "):
-            message = message[6:].strip()
+        # Clean message by removing any existing role prefixes
+        clean_message = message
+        if clean_message.startswith("AI:"):
+            clean_message = clean_message[3:].strip()
+        elif clean_message.startswith("User:"):
+            clean_message = clean_message[5:].strip()
         
         # Add new message with timestamp and role
         messages.append({
             "timestamp": datetime.now().isoformat(),
             "role": "User" if is_user else "AI",
-            "message": message
+            "message": clean_message
         })
         
         # Keep only the last MAX_MESSAGES
