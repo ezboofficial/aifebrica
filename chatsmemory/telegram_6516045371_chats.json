@@ -48,5 +48,10 @@
     "timestamp": "2025-06-28T01:36:30.649313",
     "role": "AI",
     "message": "AI: That's correct. I'm an AI assistant.  How can I help you with Febrica today?"
+  },
+  {
+    "timestamp": "2025-06-28T02:41:08.629739",
+    "role": "User",
+    "message": "Hi"
   }
 ]
