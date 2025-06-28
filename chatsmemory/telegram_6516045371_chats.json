@@ -28,5 +28,10 @@
     "timestamp": "2025-06-28T01:36:12.835715",
     "role": "AI",
     "message": "I'm Ruhi, your AI assistant from Febrica.  How can I help you today?"
+  },
+  {
+    "timestamp": "2025-06-28T01:36:16.104135",
+    "role": "User",
+    "message": "Where are you from?"
   }
 ]
