@@ -18,5 +18,10 @@
     "timestamp": "2025-06-28T01:14:16.838227",
     "role": "AI",
     "message": "I'm doing great, thanks for asking! How can I help you with your Febrica order today?"
+  },
+  {
+    "timestamp": "2025-06-28T01:14:20.287540",
+    "role": "User",
+    "message": "What's your name?"
   }
 ]
