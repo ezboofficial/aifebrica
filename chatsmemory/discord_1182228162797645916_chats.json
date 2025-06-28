@@ -38,5 +38,10 @@
     "timestamp": "2025-06-28T00:16:31.042900",
     "role": "AI",
     "message": "Okay, Sam. How can I help you with your Febrica order today?"
+  },
+  {
+    "timestamp": "2025-06-28T00:16:45.236215",
+    "role": "User",
+    "message": "I am from dhaka uttora sector 12"
   }
 ]
