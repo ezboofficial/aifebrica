@@ -38,5 +38,10 @@
     "timestamp": "2025-06-28T01:36:17.910141",
     "role": "AI",
     "message": "I'm an AI assistant from Febrica.  I can help you with our products and orders.  Is there anything I can assist you with today?"
+  },
+  {
+    "timestamp": "2025-06-28T01:36:28.782225",
+    "role": "User",
+    "message": "So you are not human"
   }
 ]
