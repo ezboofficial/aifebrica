@@ -27,7 +27,7 @@ def get_memory_filename(platform, user_id):
     """Generate memory filename for a user"""
     return os.path.join(MEMORY_DIR, f"{platform}_{user_id}_chats.json")
 
-def update_user_memory(platform, user_id, message, is_user):
+def update_user_memory(platform, user_id, message):
     """Update user memory with a new message"""
     ensure_memory_dir()
     filename = get_memory_filename(platform, user_id)
@@ -40,10 +40,9 @@ def update_user_memory(platform, user_id, message, is_user):
         else:
             messages = []
         
-        # Add new message with timestamp and role
+        # Add new message with timestamp
         messages.append({
             "timestamp": datetime.now().isoformat(),
-            "role": "User" if is_user else "AI",
             "message": message
         })
         
@@ -61,7 +60,7 @@ def update_user_memory(platform, user_id, message, is_user):
         logger.error(f"Error updating user memory: {str(e)}")
 
 def get_conversation_history(platform, user_id):
-    """Get conversation history for a user in the desired format"""
+    """Get conversation history for a user"""
     filename = get_memory_filename(platform, user_id)
     
     if not os.path.exists(filename):
@@ -71,20 +70,13 @@ def get_conversation_history(platform, user_id):
         with open(filename, 'r') as f:
             messages = json.load(f)
         
-        # Format messages as "User: message" or "AI: message"
+        # Format messages as "User/AI: message"
         formatted = []
         for msg in messages:
-            # Clean up message by removing any existing role prefixes
-            clean_msg = msg['message']
-            if clean_msg.startswith("AI:"):
-                clean_msg = clean_msg[3:].strip()
-            elif clean_msg.startswith("User:"):
-                clean_msg = clean_msg[5:].strip()
-                
-            formatted.append(f"{msg['role']}: {clean_msg}")
+            role = "User" if msg['message'].startswith("[User") else "AI"
+            formatted.append(f"{role}: {msg['message']}")
             
         return "\n".join(formatted)
-    
     except Exception as e:
         logger.error(f"Error reading conversation history: {str(e)}")
         return ""
@@ -120,54 +112,3 @@ def update_github_repo(filename, content):
         logger.info(f"GitHub repository updated with memory changes for {filename}")
     except Exception as e:
         logger.error(f"Failed to update GitHub repository with memory changes: {str(e)}")
-
-def clear_conversation_history(platform, user_id):
-    """Clear conversation history for a user"""
-    filename = get_memory_filename(platform, user_id)
-    try:
-        if os.path.exists(filename):
-            os.remove(filename)
-            logger.info(f"Cleared conversation history for {platform} user {user_id}")
-            return True
-        return False
-    except Exception as e:
-        logger.error(f"Error clearing conversation history: {str(e)}")
-        return False
-
-def get_raw_conversation_history(platform, user_id):
-    """Get raw conversation history with all metadata"""
-    filename = get_memory_filename(platform, user_id)
-    
-    if not os.path.exists(filename):
-        return []
-    
-    try:
-        with open(filename, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Error reading raw conversation history: {str(e)}")
-        return []
-
-def backup_conversation_history(platform, user_id, backup_dir="memory_backups"):
-    """Create a backup of conversation history"""
-    try:
-        if not os.path.exists(backup_dir):
-            os.makedirs(backup_dir)
-            
-        filename = get_memory_filename(platform, user_id)
-        if not os.path.exists(filename):
-            return False
-            
-        backup_filename = os.path.join(
-            backup_dir,
-            f"{platform}_{user_id}_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        )
-        
-        with open(filename, 'r') as original, open(backup_filename, 'w') as backup:
-            backup.write(original.read())
-            
-        logger.info(f"Created backup of conversation history at {backup_filename}")
-        return True
-    except Exception as e:
-        logger.error(f"Error creating conversation backup: {str(e)}")
-        return False
