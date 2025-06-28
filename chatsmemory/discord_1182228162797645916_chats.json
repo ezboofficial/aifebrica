@@ -33,5 +33,10 @@
     "timestamp": "2025-06-28T00:16:29.479867",
     "role": "User",
     "message": "My name is sam"
+  },
+  {
+    "timestamp": "2025-06-28T00:16:31.042900",
+    "role": "AI",
+    "message": "Okay, Sam. How can I help you with your Febrica order today?"
   }
 ]
