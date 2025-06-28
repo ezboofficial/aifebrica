@@ -58,5 +58,10 @@
     "timestamp": "2025-06-28T01:14:35.797552",
     "role": "AI",
     "message": "Okay, Sam. Which shirt are you interested in? We have Denim and Cotton shirts."
+  },
+  {
+    "timestamp": "2025-06-28T01:14:42.835978",
+    "role": "User",
+    "message": "Cotton"
   }
 ]
