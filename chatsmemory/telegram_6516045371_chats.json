@@ -98,5 +98,10 @@
     "timestamp": "2025-06-28T02:41:57.462421",
     "role": "AI",
     "message": "Okay! How can I help you with Febrica today?"
+  },
+  {
+    "timestamp": "2025-06-28T02:42:11.740935",
+    "role": "User",
+    "message": "You are not a human?"
   }
 ]
