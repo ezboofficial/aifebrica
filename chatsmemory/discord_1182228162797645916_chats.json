@@ -68,5 +68,10 @@
     "timestamp": "2025-06-28T00:17:01.619556",
     "role": "AI",
     "message": "Okay, Sam. What size and color Cotton shirt would you like?"
+  },
+  {
+    "timestamp": "2025-06-28T00:17:08.760506",
+    "role": "User",
+    "message": "Black color xl size"
   }
 ]
