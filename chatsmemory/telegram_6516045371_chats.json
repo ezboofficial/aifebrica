@@ -63,5 +63,10 @@
     "timestamp": "2025-06-28T02:41:15.046270",
     "role": "User",
     "message": "How are you?"
+  },
+  {
+    "timestamp": "2025-06-28T02:41:16.650481",
+    "role": "AI",
+    "message": "I'm doing great, thanks! How can I help you with Febrica today?"
   }
 ]
