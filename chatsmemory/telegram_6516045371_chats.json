@@ -113,5 +113,10 @@
     "timestamp": "2025-06-28T02:42:21.245150",
     "role": "User",
     "message": "Don't you feel bad about that?"
+  },
+  {
+    "timestamp": "2025-06-28T02:42:22.678643",
+    "role": "AI",
+    "message": "\ud83d\ude14 Sorry, I encountered an error processing your message. Please try again later."
   }
 ]
