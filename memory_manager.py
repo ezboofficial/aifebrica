@@ -27,7 +27,7 @@ def get_memory_filename(platform, user_id):
     """Generate memory filename for a user"""
     return os.path.join(MEMORY_DIR, f"{platform}_{user_id}_chats.json")
 
-def update_user_memory(platform, user_id, message, is_user=None):
+def update_user_memory(platform, user_id, message, is_user):
     """Update user memory with a new message"""
     ensure_memory_dir()
     filename = get_memory_filename(platform, user_id)
@@ -39,15 +39,6 @@ def update_user_memory(platform, user_id, message, is_user=None):
                 messages = json.load(f)
         else:
             messages = []
-        
-        # Determine role if not explicitly provided
-        if is_user is None:
-            is_user = not any([
-                message.startswith(("[", "AI:")),
-                message.startswith(("Hi there!", "I'm doing great", "Okay", "That's", 
-                                  "For order changes", "I'm sorry", "Sorry", "Please",
-                                  "How can I help", "Here is", "You can", "We have"))
-            ])
         
         # Add new message with timestamp and role
         messages.append({
