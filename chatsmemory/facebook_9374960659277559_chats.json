@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T04:29:45.169096",
-    "message": "how are u"
-  },
-  {
     "timestamp": "2025-06-29T04:29:47.751887",
     "message": "I'm doing great, thanks for asking! How can I help you today?"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:35:25.265181",
     "message": "Okay.  What payment method would you prefer: Bkash or COD?"
+  },
+  {
+    "timestamp": "2025-06-29T04:35:30.057736",
+    "message": "cod"
   }
 ]
