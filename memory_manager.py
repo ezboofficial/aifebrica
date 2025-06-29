@@ -70,11 +70,14 @@ def get_conversation_history(platform, user_id):
         with open(filename, 'r') as f:
             messages = json.load(f)
         
-        # Format messages as "User/AI: message"
+        # Format messages without "User/AI:" prefix
         formatted = []
         for msg in messages:
-            role = "User" if msg['message'].startswith("[User") else "AI"
-            formatted.append(f"{role}: {msg['message']}")
+            # Remove any role prefix (User/AI:) from the message
+            message_text = msg['message']
+            if message_text.startswith(("User:", "AI:")):
+                message_text = message_text.split(":", 1)[1].strip()
+            formatted.append(message_text)
             
         return "\n".join(formatted)
     except Exception as e:
