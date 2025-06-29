@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:34:58.305486",
-    "message": "Show me some shirt pictures"
-  },
-  {
     "timestamp": "2025-06-29T02:35:24.763661",
     "message": "Actually iam adib and wanna buy shirt from u"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T02:38:29.985169",
     "message": "Thanks"
+  },
+  {
+    "timestamp": "2025-06-29T02:38:31.846205",
+    "message": "Okay, have a great day!"
   }
 ]
