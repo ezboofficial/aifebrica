@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:32:22.661504",
-    "message": "Okay cool what's the price"
-  },
-  {
     "timestamp": "2025-06-29T02:32:25.110181",
     "message": "The Denim Shirt is 785BDT."
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:32:34.889279",
     "message": "I'm an AI; I don't have beliefs.  Is there anything I can help you with regarding Febrica products?"
+  },
+  {
+    "timestamp": "2025-06-29T04:33:17.386331",
+    "message": "if their is fire in my school and its burning so should i call ambulance?"
   }
 ]
