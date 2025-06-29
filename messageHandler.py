@@ -111,13 +111,8 @@ def remove_product(index):
 
 # Orders List
 orders = [
-    {'name': 'Abdur Rahman', 'mobile': '01709805177', 'address': 'Dhaka, Mirpur Sector 12', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-27'},
-    {'name': 'Bobby', 'mobile': '0170980618398', 'address': 'Dhaka Mirpur 10', 'product': 'Cotton Shirt (XL, Navy)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-27'},
-    {'name': 'Sam', 'mobile': '[Number - needs to be provided by user]', 'address': 'Dhaka Uttora Sector 12', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 860, 'delivery_charge': 60, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-28'},
-    {'name': 'Adib Ansary', 'mobile': '01707322640', 'address': '12-7, Montola, Bandarban, Dhaka', 'product': 'Cotton Shirt (XL, Black)', 'price': 800, 'payment_method': 'COD', 'total': 930, 'delivery_charge': 130, 'subtotal': 800, 'status': 'Preparing', 'date': '2025-06-29'},
-    {'name': 'Adib', 'mobile': '01707322640', 'address': '12-6,montola bandarban', 'product': 'Denim Shirt (XL, Black)', 'price': 785, 'payment_method': 'COD', 'total': 845, 'delivery_charge': 60, 'subtotal': 785, 'status': 'Preparing', 'date': '2025-06-29'}
-]
 
+]
 # Sales Logs List
 sales_logs = []
 
@@ -331,22 +326,6 @@ def extract_image_url(message):
         return message.split("image_url:")[1].strip()
     return None
 
-def report_error_to_key_manager(api_key):
-    """Report a failed API key to the key manager"""
-    try:
-        response = requests.post(
-            'https://ezbo.org/api/key-manager.php',
-            data={
-                'action': 'report_error',
-                'key': api_key
-            },
-            verify=False  # Bypass SSL verification
-        )
-        response.raise_for_status()
-        logger.info(f"Reported error for key ending with {api_key[-4:]}")
-    except Exception as e:
-        logger.error(f"Failed to report error to key manager: {str(e)}")
-
 # Optimized system instruction template
 def get_system_instruction():
     time_now = time.asctime(time.localtime(time.time()))
@@ -434,7 +413,7 @@ If a customer asks for an order detail change, order cancellation, return, or an
 
 def get_gemini_api_key():
     try:
-        response = requests.get('https://ezbo.org/api/key-manager.php/123456', verify=False)
+        response = requests.get('https://ezbo.org/api/key-manager.php/123456')
         response.raise_for_status()
         data = response.json()
         return data['api_key']
@@ -522,8 +501,17 @@ def handle_text_message(user_message, last_message):
         logger.info("Processing text message: %s", user_message)
         
         # Initialize Gemini model at the start (fetches key once per message)
-        model = initialize_text_model()
-        api_key = get_gemini_api_key()  # Store the key to report if needed
+        api_key = get_gemini_api_key()
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "top_k": 30,
+                "max_output_tokens": 8192,
+            }
+        )
         
         # Check if this is an image attachment
         if "image_url:" in user_message.lower():
@@ -567,6 +555,9 @@ def handle_text_message(user_message, last_message):
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
         # Report the error to key manager
-        if 'api_key' in locals():
-            report_error_to_key_manager(api_key)
+        try:
+            if 'api_key' in locals():
+                requests.get(f'https://ezbo.org/api/key-manager.php?action=report_error&key={api_key}')
+        except Exception as report_error:
+            logger.error(f"Failed to report key error: {str(report_error)}")
         return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
