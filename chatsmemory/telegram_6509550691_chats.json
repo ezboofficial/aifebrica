@@ -114,5 +114,9 @@
   {
     "timestamp": "2025-06-29T02:38:06.380411",
     "message": "Okay Adib, your order is:\n\n- Name: Adib Ansary\n- Mobile: 01707322640\n- Address: 12-7, Montola, Bandarban, Dhaka\n- Product: Cotton Shirt (XL, Black)\n- Price: 800BDT\n- Delivery Charge: 130BDT\n- Total: 930BDT\n\nWe accept Bkash (01709805177) and COD.  Which payment method do you prefer?"
+  },
+  {
+    "timestamp": "2025-06-29T02:38:15.822734",
+    "message": "COD"
   }
 ]
