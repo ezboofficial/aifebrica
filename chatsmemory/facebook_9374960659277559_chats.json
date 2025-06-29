@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:30:35.536626",
-    "message": "I'm helping customers with their Febrica orders and answering product questions.  What can I help you with today?"
-  },
-  {
     "timestamp": "2025-06-29T02:30:58.284671",
     "message": "I want to order a shirt can u send me some shirt picture"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:32:00.088378",
     "message": "wow"
+  },
+  {
+    "timestamp": "2025-06-29T04:32:02.539991",
+    "message": "Okay. Is there anything else I can help you with today?"
   }
 ]
