@@ -417,56 +417,27 @@ If a customer asks for an order detail change, order cancellation, return, or an
 """
 
 def get_gemini_api_key():
-    max_retries = 3
-    retry_delay = 1  # seconds
-    
-    for attempt in range(max_retries):
-        try:
-            response = requests.get('https://ezbo.org/api/key-manager.php/123456')
-            response.raise_for_status()
-            data = response.json()
-            
-            if 'api_key' in data:
-                return data['api_key']
-            else:
-                raise ValueError("Invalid API key response")
-                
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Error fetching API key (attempt {attempt + 1}): {error_msg}")
-            
-            # Report the error to key manager if we have the key
-            if attempt > 0 and 'api_key' in locals():
-                try:
-                    requests.get(
-                        f'https://ezbo.org/api/key-manager.php?action=report_error&key={data["api_key"]}&error={error_msg}',
-                        timeout=2
-                    )
-                except Exception as report_error:
-                    logger.error(f"Failed to report key error: {str(report_error)}")
-            
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                continue
-                
-            raise RuntimeError("Failed to fetch valid Gemini API key after multiple attempts")
+    try:
+        response = requests.get('https://ezbo.org/api/key-manager.php/123456')
+        response.raise_for_status()
+        data = response.json()
+        return data['api_key']
+    except Exception as e:
+        logger.error(f"Error fetching API key: {str(e)}")
+        raise RuntimeError("Failed to fetch Gemini API key from key manager")
 
 def initialize_text_model():
-    try:
-        api_key = get_gemini_api_key()
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config={
-                "temperature": 0.3,
-                "top_p": 0.95,
-                "top_k": 30,
-                "max_output_tokens": 8192,
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error initializing Gemini model: {str(e)}")
-        raise RuntimeError("Failed to initialize Gemini model")
+    api_key = get_gemini_api_key()
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config={
+            "temperature": 0.3,
+            "top_p": 0.95,
+            "top_k": 30,
+            "max_output_tokens": 8192,
+        }
+    )
 
 def format_product_list():
     return "\n".join([
