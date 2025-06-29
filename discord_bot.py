@@ -32,6 +32,10 @@ class DiscordBot(commands.Bot):
         logger.info('------')
 
     async def on_message(self, message):
+        # Only respond to DMs, ignore messages in servers
+        if not isinstance(message.channel, discord.DMChannel):
+            return
+
         if message.author == self.user:
             return
 
@@ -71,7 +75,6 @@ class DiscordBot(commands.Bot):
                                     await message.channel.send(
                                         content=product_text,
                                         file=discord.File(BytesIO(image_response.content), filename='product.png')
-                                    )
                                 else:
                                     await message.channel.send(response)
                             except Exception as e:
