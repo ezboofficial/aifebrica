@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T06:27:51.995891",
-    "message": "I'm doing great, thanks! How can I help you today?"
-  },
-  {
     "timestamp": "2025-06-29T06:28:22.507195",
     "message": "[User sent an image]"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T15:28:22.379143",
     "message": "Hi"
+  },
+  {
+    "timestamp": "2025-06-29T15:28:27.162191",
+    "message": "\ud83d\ude14 Sorry, I encountered an error processing your message. Please try again later."
   }
 ]
