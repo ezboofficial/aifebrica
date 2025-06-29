@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T04:29:04.084766",
-    "message": "Hi!  What can I help you with today?"
-  },
-  {
     "timestamp": "2025-06-29T04:29:45.169096",
     "message": "how are u"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:35:22.640704",
     "message": "just confirm order denim shirt xl black name adib number 01707322640 address 12-6,montola bandarban"
+  },
+  {
+    "timestamp": "2025-06-29T04:35:25.265181",
+    "message": "Okay.  What payment method would you prefer: Bkash or COD?"
   }
 ]
