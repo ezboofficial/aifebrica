@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
+import json
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -86,28 +87,45 @@ def format_delivery_records():
     ])
 
 # Product List
-products = [
-    {'category': 'Shirt', 'type': 'Denim Shirt', 'size': ['M', 'L', 'XL'], 'color': ['Blue', 'Gray'], 'image': 'https://ezbo.org/product-image/uploads/img_682c988cbd00b6.10732605.jpg', 'price': 785},
-    {'category': 'Shirt', 'type': 'Cotton Shirt', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Black', 'Navy'], 'image': 'https://ezbo.org/product-image/uploads/img_682c98c0ee3119.95771931.jpg', 'price': 800},
-    {'category': 'Pant', 'type': 'Cargo Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Gray', 'White'], 'image': 'https://ezbo.org/product-image/uploads/img_682c990bc73608.08671474.jpg', 'price': 850},
-    {'category': 'Pant', 'type': 'Gabardine Pant', 'size': ['M', 'L', 'XL', 'XXL'], 'color': ['Black', 'Blue'], 'image': 'https://ezbo.org/product-image/uploads/img_682c9966ed74c6.48769739.jpg', 'price': 720},
-    {'category': 'Shoes', 'type': 'Casual Shoes', 'size': ['36', '37', '38', '39', '40', '41', '42'], 'color': ['Blue', 'Red'], 'image': 'https://ezbo.org/product-image/uploads/img_682c99a0295111.82030960.jpg', 'price': 1100},
-    {'category': 'Shoes', 'type': 'Dress Shoes', 'size': ['36', '37', '38', '39', '40'], 'color': ['Black', 'Orange'], 'image': 'https://ezbo.org/product-image/uploads/img_682c99d3d32951.87415347.jpg', 'price': 950}
-]
+products = []
+
+def load_products():
+    """Load products from JSON file"""
+    global products
+    try:
+        with open('products.json', 'r') as f:
+            products = json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading products: {str(e)}")
+        products = []
+
+def save_products():
+    """Save products to JSON file"""
+    try:
+        with open('products.json', 'w') as f:
+            json.dump(products, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving products: {str(e)}")
+
+# Load products at module initialization
+load_products()
 
 def get_products():
     return products
 
 def add_product(product):
     products.append(product)
+    save_products()
 
 def update_product(index, product):
     if 0 <= index < len(products):
         products[index] = product
+        save_products()
 
 def remove_product(index):
     if 0 <= index < len(products):
         products.pop(index)
+        save_products()
 
 # Orders List
 orders = [
