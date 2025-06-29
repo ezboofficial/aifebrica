@@ -315,27 +315,24 @@ def stock_lists():
                 "image": request.form.get('image'),
                 "price": int(request.form.get('price'))
             }
-            messageHandler.products.append(new_product)
+            messageHandler.add_product(new_product)
             flash("Product added successfully!", "success")
-            messageHandler.update_github_repo(messageHandler.products)
         elif action == 'edit':
             product_index = int(request.form.get('product_index'))
-            messageHandler.products[product_index] = {
+            messageHandler.update_product(product_index, {
                 "category": request.form.get('category'),
                 "type": request.form.get('type'),
                 "size": [s.strip() for s in request.form.get('size').split(',')],
                 "color": [c.strip() for c in request.form.get('color').split(',')],
                 "image": request.form.get('image'),
                 "price": int(request.form.get('price'))
-            }
+            })
             flash("Product updated successfully!", "success")
-            messageHandler.update_github_repo(messageHandler.products)
         elif action == 'remove':
             product_index = int(request.form.get('product_index'))
             product_image = messageHandler.products[product_index]['image']
-            messageHandler.products.pop(product_index)
+            messageHandler.remove_product(product_index)
             flash("Product removed successfully!", "success")
-            messageHandler.update_github_repo(messageHandler.products)
             
             if product_image:
                 try:
