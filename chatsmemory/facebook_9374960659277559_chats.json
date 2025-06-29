@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:32:58.481160",
-    "message": "Cotton Shirt"
-  },
-  {
     "timestamp": "2025-06-29T04:29:00.748344",
     "message": "Hi"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:34:31.713516",
     "message": "do u know about any product?"
+  },
+  {
+    "timestamp": "2025-06-29T04:34:34.440738",
+    "message": "Yes, we sell shirts, pants, and shoes.  What are you interested in?"
   }
 ]
