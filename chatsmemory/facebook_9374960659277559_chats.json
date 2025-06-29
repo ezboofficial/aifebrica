@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:30:32.691086",
-    "message": "What are u doing"
-  },
-  {
     "timestamp": "2025-06-29T02:30:35.536626",
     "message": "I'm helping customers with their Febrica orders and answering product questions.  What can I help you with today?"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:31:48.899569",
     "message": "I'm Ruhi, an AI assistant designed to help customers with Febrica orders and product information.  I can't share details about my creation, as that's confidential."
+  },
+  {
+    "timestamp": "2025-06-29T04:32:00.088378",
+    "message": "wow"
   }
 ]
