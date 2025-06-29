@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+PAGE_ID = os.getenv("PAGE_ID")
 
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
@@ -93,6 +94,11 @@ def handle_facebook_message(data):
             for event in entry.get("messaging", []):
                 if "message" in event:
                     sender_id = event["sender"]["id"]
+                    
+                    # Skip if this is the page's own message
+                    if str(sender_id) == str(PAGE_ID):
+                        continue
+                        
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
                     
@@ -162,8 +168,8 @@ def verify_webhook(token_sent):
     return False
 
 def run_page_bot():
-    if not PAGE_ACCESS_TOKEN or not VERIFY_TOKEN:
-        logger.error("Missing required environment variables (PAGE_ACCESS_TOKEN or VERIFY_TOKEN)")
+    if not PAGE_ACCESS_TOKEN or not VERIFY_TOKEN or not PAGE_ID:
+        logger.error("Missing required environment variables (PAGE_ACCESS_TOKEN, VERIFY_TOKEN, or PAGE_ID)")
         return
     
     logger.info("Facebook Page bot is ready to process messages")
