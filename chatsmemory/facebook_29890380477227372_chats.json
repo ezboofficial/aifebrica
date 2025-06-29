@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T06:27:26.978267",
-    "message": "Hi"
-  },
-  {
     "timestamp": "2025-06-29T06:27:29.692622",
     "message": "Hi!"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T15:00:28.406423",
     "message": "Hi! How can I help you today?"
+  },
+  {
+    "timestamp": "2025-06-29T15:00:55.918936",
+    "message": "how are you?"
   }
 ]
