@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:34:46.995299",
-    "message": "Hi"
-  },
-  {
     "timestamp": "2025-06-29T02:34:48.564739",
     "message": "AI: Hello! How can I help you today?"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T02:38:15.822734",
     "message": "COD"
+  },
+  {
+    "timestamp": "2025-06-29T02:38:21.611758",
+    "message": "Okay Adib, Your order has been placed!\n- Name: Adib Ansary\n- Mobile: 01707322640\n- Address: 12-7, Montola, Bandarban, Dhaka\n- Product: Cotton Shirt (XL, Black)\n- Price: 800BDT\n- Payment Method: COD\n- Total: 930BDT"
   }
 ]
