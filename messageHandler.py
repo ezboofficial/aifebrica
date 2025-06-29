@@ -497,91 +497,78 @@ def extract_order_details(response):
         return None
 
 def handle_text_message(user_message, last_message):
-    try:
-        logger.info("Processing text message: %s", user_message)
-        
-        # Initialize Gemini model at the start (fetches key once per message)
-        api_key = get_gemini_api_key()
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config={
-                "temperature": 0.3,
-                "top_p": 0.95,
-                "top_k": 30,
-                "max_output_tokens": 8192,
-            }
-        )
-        
-        # Check if this is an image attachment
-        if "image_url:" in user_message.lower():
-            image_url = extract_image_url(user_message)
-            if image_url:
-                matched_product, score = analyze_and_match_product(image_url)
-                if matched_product:
-                    response = (
-                        f"I found a similar product in our catalog ({(score*100):.1f}% match):\n"
-                        f"{matched_product['type']} ({matched_product['category']})\n"
-                        f"Sizes: {', '.join(matched_product['size'])}\n"
-                        f"Colors: {', '.join(matched_product['color'])}\n"
-                        f"Price: {matched_product['price']}{settings['currency']}\n"
-                        f"Image: {matched_product['image']}"
-                    )
-                    return response, matched_product
-                else:
-                    return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
-
-        # Original processing continues if no image or no match found
-        system_instruction = get_system_instruction()
-        
-        # Retry logic for API calls
-        max_attempts = 3
-        attempt = 0
-        last_error = None
-        
-        while attempt < max_attempts:
-            attempt += 1
-            try:
-                chat = model.start_chat(history=[])
-                response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
-                
-                simplified_response = response.text.strip()
-                simplified_response = simplified_response.replace("*", "")
-                
-                # Check if this is an order confirmation
-                if "Your order has been placed!" in simplified_response:
-                    order_details = extract_order_details(simplified_response)
-                    if order_details:
-                        add_order(order_details)
-                        update_github_repo_orders(orders)
-                        logger.info("New order added and GitHub repository updated.")
-                
-                return simplified_response, None
-                
-            except Exception as e:
-                last_error = e
-                logger.error(f"Attempt {attempt} failed: {str(e)}")
-                if attempt < max_attempts:
-                    time.sleep(1)  # Wait a second before retrying
-                
-        # If we get here, all attempts failed
-        logger.error(f"All {max_attempts} attempts failed. Last error: {str(last_error)}")
-        
-        # Report the error to key manager
+    max_retries = 3  # Maximum number of retries for API errors
+    retry_delay = 1  # Delay between retries in seconds
+    
+    for attempt in range(max_retries):
         try:
-            if 'api_key' in locals():
-                requests.get(f'https://ezbo.org/api/key-manager.php?action=report_error&key={api_key}')
-        except Exception as report_error:
-            logger.error(f"Failed to report key error: {str(report_error)}")
+            logger.info(f"Processing text message (attempt {attempt + 1}): {user_message}")
             
-        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+            # Check if this is an image attachment
+            if "image_url:" in user_message.lower():
+                image_url = extract_image_url(user_message)
+                if image_url:
+                    matched_product, score = analyze_and_match_product(image_url)
+                    if matched_product:
+                        response = (
+                            f"I found a similar product in our catalog ({(score*100):.1f}% match):\n"
+                            f"{matched_product['type']} ({matched_product['category']})\n"
+                            f"Sizes: {', '.join(matched_product['size'])}\n"
+                            f"Colors: {', '.join(matched_product['color'])}\n"
+                            f"Price: {matched_product['price']}{settings['currency']}\n"
+                            f"Image: {matched_product['image']}"
+                        )
+                        return response, matched_product
+                    else:
+                        return "No Match Found!!\n\n- I couldn't find anything matching in our catalog.\n- To help me assist you, please follow these steps:\n\n 1. Visit our Facebook page.\n 2. Download an image of the product you need.\n 3. Send it to me directly.\n\n- You can also describe what you're looking for, I can then show you your needed product with an image.", None
 
-    except Exception as e:
-        logger.error(f"Error processing text message: {str(e)}")
-        # Report the error to key manager
-        try:
-            if 'api_key' in locals():
-                requests.get(f'https://ezbo.org/api/key-manager.php?action=report_error&key={api_key}')
-        except Exception as report_error:
-            logger.error(f"Failed to report key error: {str(report_error)}")
-        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
+            # Get a fresh API key for each attempt
+            api_key = get_gemini_api_key()
+            genai.configure(api_key=api_key)
+            
+            # Initialize Gemini model with fresh configuration
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                generation_config={
+                    "temperature": 0.3,
+                    "top_p": 0.95,
+                    "top_k": 30,
+                    "max_output_tokens": 8192,
+                }
+            )
+            
+            system_instruction = get_system_instruction()
+            
+            chat = model.start_chat(history=[])
+            response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+            
+            simplified_response = response.text.strip()
+            simplified_response = simplified_response.replace("*", "")
+            
+            # Check if this is an order confirmation
+            if "Your order has been placed!" in simplified_response:
+                order_details = extract_order_details(simplified_response)
+                if order_details:
+                    add_order(order_details)
+                    update_github_repo_orders(orders)
+                    logger.info("New order added and GitHub repository updated.")
+            
+            return simplified_response, None
+
+        except Exception as e:
+            logger.error(f"Error processing text message (attempt {attempt + 1}): {str(e)}")
+            
+            # Report the error to key manager
+            try:
+                if 'api_key' in locals():
+                    requests.get(f'https://ezbo.org/api/key-manager.php?action=report_error&key={api_key}')
+            except Exception as report_error:
+                logger.error(f"Failed to report key error: {str(report_error)}")
+            
+            # If this was the last attempt, return the error message
+            if attempt == max_retries - 1:
+                return "😔 Sorry, I'm having trouble processing your request. Please try again later.", None
+            
+            # Wait before retrying
+            time.sleep(retry_delay)
+            continue
