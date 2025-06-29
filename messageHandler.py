@@ -534,23 +534,47 @@ def handle_text_message(user_message, last_message):
         # Original processing continues if no image or no match found
         system_instruction = get_system_instruction()
         
-        chat = model.start_chat(history=[])
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        # Retry logic for API calls
+        max_attempts = 3
+        attempt = 0
+        last_error = None
         
-        simplified_response = response.text.strip()
+        while attempt < max_attempts:
+            attempt += 1
+            try:
+                chat = model.start_chat(history=[])
+                response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+                
+                simplified_response = response.text.strip()
+                simplified_response = simplified_response.replace("*", "")
+                
+                # Check if this is an order confirmation
+                if "Your order has been placed!" in simplified_response:
+                    order_details = extract_order_details(simplified_response)
+                    if order_details:
+                        add_order(order_details)
+                        update_github_repo_orders(orders)
+                        logger.info("New order added and GitHub repository updated.")
+                
+                return simplified_response, None
+                
+            except Exception as e:
+                last_error = e
+                logger.error(f"Attempt {attempt} failed: {str(e)}")
+                if attempt < max_attempts:
+                    time.sleep(1)  # Wait a second before retrying
+                
+        # If we get here, all attempts failed
+        logger.error(f"All {max_attempts} attempts failed. Last error: {str(last_error)}")
         
-        # Clean up any remaining formatting characters
-        simplified_response = simplified_response.replace("*", "")
-        
-        # Check if this is an order confirmation
-        if "Your order has been placed!" in simplified_response:
-            order_details = extract_order_details(simplified_response)
-            if order_details:
-                add_order(order_details)
-                update_github_repo_orders(orders)
-                logger.info("New order added and GitHub repository updated.")
-        
-        return simplified_response, None
+        # Report the error to key manager
+        try:
+            if 'api_key' in locals():
+                requests.get(f'https://ezbo.org/api/key-manager.php?action=report_error&key={api_key}')
+        except Exception as report_error:
+            logger.error(f"Failed to report key error: {str(report_error)}")
+            
+        return "😔 Sorry, I encountered an error processing your message. Please try again later.", None
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
