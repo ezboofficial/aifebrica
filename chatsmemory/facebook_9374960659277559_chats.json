@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:32:25.110181",
-    "message": "The Denim Shirt is 785BDT."
-  },
-  {
     "timestamp": "2025-06-29T02:32:41.948403",
     "message": "Any other shirts available?"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:33:17.386331",
     "message": "if their is fire in my school and its burning so should i call ambulance?"
+  },
+  {
+    "timestamp": "2025-06-29T04:33:19.967700",
+    "message": "That sounds serious.  Please call emergency services immediately."
   }
 ]
