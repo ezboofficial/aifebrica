@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:34:28.317036",
-    "message": "I found a similar product in our catalog (89.4% match):\nDenim Shirt (Shirt)\nSizes: M, L, XL\nColors: Blue, Gray\nPrice: 785BDT\nImage: https://ezbo.org/product-image/uploads/img_682c988cbd00b6.10732605.jpg"
-  },
-  {
     "timestamp": "2025-06-29T06:27:26.978267",
     "message": "Hi"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T15:00:25.636183",
     "message": "Hi"
+  },
+  {
+    "timestamp": "2025-06-29T15:00:28.406423",
+    "message": "Hi! How can I help you today?"
   }
 ]
