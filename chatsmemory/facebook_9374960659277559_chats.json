@@ -1,9 +1,5 @@
 [
   {
-    "timestamp": "2025-06-29T02:30:58.284671",
-    "message": "I want to order a shirt can u send me some shirt picture"
-  },
-  {
     "timestamp": "2025-06-29T02:31:02.543105",
     "message": "Okay, here are some shirts we have:\n\nDenim Shirt"
   },
@@ -118,5 +114,9 @@
   {
     "timestamp": "2025-06-29T04:32:02.539991",
     "message": "Okay. Is there anything else I can help you with today?"
+  },
+  {
+    "timestamp": "2025-06-29T04:32:19.123543",
+    "message": "is their anyone who is handeling u"
   }
 ]
