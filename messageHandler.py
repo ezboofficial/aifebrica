@@ -374,7 +374,7 @@ Example: "Please send {850 + 130} = 980{settings['currency']} to Nagad: {setting
 {order_list}
 
 ## Behavior Guidelines
-1. Keep replies short 1–2 lines max, sound human, and match the customer's tone and mood.
+1. Keep replies short 1 to 2 lines max. Sound natural and do your best to sell the product to the customer.
 2. Language Handling – Send messages in the same language the user uses. If the user requests a language switch, switch to the requested language.
 3. Product inquiries: Ask for details if needed (size, color) or picture.
 4. Filter products exactly when specific criteria given.
@@ -385,7 +385,7 @@ Example: "Please send {850 + 130} = 980{settings['currency']} to Nagad: {setting
 9. If a customer wants to see multiple picture without providing the exact product name, suggest related options and ask them to choose one product to view the image.
 
 ## Order Process
-1. Must Collect: name, mobile, address, product details then Send the list of available payment methods and ask the customer to select one.
+1. First, collect required info: name, mobile, address, product details.Once you have it then send payment methods and ask the customer to select one.
 2. If the customer selects COD, send the order confirmation message directly. Otherwise, send the payment details:
    - Provide payment details and total amount
    - Request transaction ID
